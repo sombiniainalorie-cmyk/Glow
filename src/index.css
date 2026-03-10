@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+  
+  --color-beige: #1A1A22;
+  --color-terracotta: #C6A75E;
+  --color-offwhite: #0F0F14;
+  --color-anthracite: #F5F5F5;
+  --color-accent-light: #C6A75E;
+  --color-accent-hover: #B89645;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  
+  body {
+    @apply bg-offwhite text-anthracite font-sans overflow-x-hidden antialiased;
+    /* Better touch support */
+    -webkit-tap-highlight-color: transparent;
+    /* Safe areas for iOS */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-anthracite;
+  }
+
+  /* Fix for iOS Safari input zoom */
+  input, textarea, select {
+    @apply text-base bg-beige border-white/5 text-anthracite;
+  }
+}
+
+.btn-primary {
+  @apply bg-terracotta text-offwhite px-6 py-3 rounded-xl font-bold transition-all hover:bg-accent-hover active:scale-95 shadow-lg shadow-black/40 border border-white/10;
+}
+
+.btn-secondary {
+  @apply bg-beige text-anthracite px-6 py-3 rounded-xl font-medium transition-all hover:bg-beige/80 active:scale-95 border border-white/5;
+}
+
+.card {
+  @apply bg-beige rounded-3xl p-6 shadow-xl border border-white/5;
+}
