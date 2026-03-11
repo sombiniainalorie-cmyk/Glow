@@ -30,7 +30,6 @@ if (!fs.existsSync(uploadsDir)) {
 const db = new Database("affinite70.db");
 const PORT = 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "affinite-70-secret-key";
-console.log("JWT_SECRET starts with:", JWT_SECRET.substring(0, 5));
 const OWNER_EMAIL = "sombiniainalorie@gmail.com";
 
 // Push Notifications Config
@@ -417,6 +416,10 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 // --- PUSH NOTIFICATION ROUTES ---
+app.get("/api/ping", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.post("/api/push/subscribe", authenticate, (req: any, res) => {
   const userId = req.user.id;
   const { subscription } = req.body;
@@ -442,10 +445,27 @@ app.get("/api/push/key", (req, res) => {
 });
 
 // --- PROFILE ROUTES ---
-app.post("/api/profile", authenticate, upload.single('photo'), (req: any, res) => {
+app.post("/api/profile", authenticate, upload.array('photos', 6), (req: any, res) => {
   const profile = req.body;
   const userId = req.user.id;
-  const photoUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  const files = req.files as any[];
+  
+  let photoUrl = profile.photoUrl || null;
+
+  if (files && files.length > 0) {
+    // If we have new photos, the first one becomes the primary one if none exists
+    const firstPhotoUrl = `/uploads/${files[0].filename}`;
+    if (!photoUrl) photoUrl = firstPhotoUrl;
+
+    files.forEach((file, index) => {
+      const url = `/uploads/${file.filename}`;
+      const isPrimary = (url === photoUrl) ? 1 : 0;
+      if (isPrimary) {
+        db.prepare("UPDATE user_photos SET is_primary = 0 WHERE user_id = ?").run(userId);
+      }
+      db.prepare("INSERT INTO user_photos (user_id, url, is_primary) VALUES (?, ?, ?)").run(userId, url, isPrimary);
+    });
+  }
   
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO profiles (
@@ -462,15 +482,10 @@ app.post("/api/profile", authenticate, upload.single('photo'), (req: any, res) =
     profile.hairType, profile.age, profile.skinColor, profile.physique,
     profile.jealous, profile.personality, profile.hasChildren,
     profile.occupationStatus, profile.city, profile.orientation,
-    profile.funQuestion, profile.seriousQuestion, photoUrl || profile.photoUrl
+    profile.funQuestion, profile.seriousQuestion, photoUrl
   );
-
-  if (photoUrl) {
-    db.prepare("UPDATE user_photos SET is_primary = 0 WHERE user_id = ?").run(userId);
-    db.prepare("INSERT INTO user_photos (user_id, url, is_primary) VALUES (?, ?, 1)").run(userId, photoUrl);
-  }
   
-  res.json({ success: true });
+  res.json({ success: true, photoUrl });
 });
 
 app.post("/api/profile/photo", authenticate, upload.single("photo"), (req: any, res) => {
@@ -492,27 +507,26 @@ app.get("/api/photos", authenticate, (req: any, res) => {
   res.json(photos);
 });
 
-app.post("/api/photos", authenticate, upload.single("photo"), (req: any, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+app.post("/api/photos", authenticate, upload.array("photos", 6), (req: any, res) => {
+  const files = req.files as any[];
+  if (!files || files.length === 0) return res.status(400).json({ error: "No files uploaded" });
   
   const userId = req.user.id;
-  const photoUrl = `/uploads/${req.file.filename}`;
-  
-  // Check if user has any photos
   const existingPhotos = db.prepare("SELECT COUNT(*) as count FROM user_photos WHERE user_id = ?").get(userId) as any;
-  const isPrimary = existingPhotos.count === 0 ? 1 : 0;
   
-  const result = db.prepare("INSERT INTO user_photos (user_id, url, is_primary) VALUES (?, ?, ?)").run(userId, photoUrl, isPrimary);
-  
-  if (isPrimary) {
-    db.prepare("UPDATE profiles SET photo_url = ? WHERE user_id = ?").run(photoUrl, userId);
-  }
-  
-  res.json({ 
-    id: result.lastInsertRowid,
-    url: photoUrl,
-    is_primary: isPrimary
+  files.forEach((file, index) => {
+    const photoUrl = `/uploads/${file.filename}`;
+    const isPrimary = (existingPhotos.count === 0 && index === 0) ? 1 : 0;
+    
+    db.prepare("INSERT INTO user_photos (user_id, url, is_primary) VALUES (?, ?, ?)").run(userId, photoUrl, isPrimary);
+    
+    if (isPrimary) {
+      db.prepare("UPDATE profiles SET photo_url = ? WHERE user_id = ?").run(photoUrl, userId);
+    }
   });
+  
+  const allPhotos = db.prepare("SELECT * FROM user_photos WHERE user_id = ? ORDER BY is_primary DESC, created_at DESC").all(userId);
+  res.json(allPhotos);
 });
 
 app.delete("/api/photos/:id", authenticate, (req: any, res) => {
@@ -1213,14 +1227,18 @@ function startKeepAlive() {
 
   console.log(`[Keep-Alive] Starting self-ping for ${APP_URL}`);
   
-  setInterval(() => {
-    const url = `${APP_URL}/api/health`;
+  // Ping immediately on start
+  const ping = () => {
+    const url = `${APP_URL}/api/ping`;
     http.get(url, (res) => {
-      console.log(`[Keep-Alive] Ping successful: ${res.statusCode}`);
+      console.log(`[Keep-Alive] Ping successful: ${res.statusCode} at ${new Date().toISOString()}`);
     }).on('error', (err) => {
       console.error(`[Keep-Alive] Ping failed: ${err.message}`);
     });
-  }, 300000); // Every 5 minutes
+  };
+
+  ping();
+  setInterval(ping, 300000); // Every 5 minutes
 }
 
 if (process.env.NODE_ENV === "production") {
