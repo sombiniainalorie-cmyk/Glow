@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, Component, ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -37,16 +37,97 @@ import {
   ArrowRight,
   Globe,
   PenTool,
-  Briefcase
+  Briefcase,
+  Flag
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { GoogleGenAI, Type } from "@google/genai";
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+// --- Components ---
+
+class AppErrorBoundary extends (Component as any) {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("AppErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4 bg-offwhite">
+          <div className="card max-w-md w-full text-center space-y-6">
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={32} />
+            </div>
+            <h2 className="text-2xl font-serif">Oups ! Quelque chose s'est mal passé.</h2>
+            <p className="text-anthracite/60">
+              Une erreur inattendue est survenue. Veuillez rafraîchir la page ou réessayer plus tard.
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="btn-primary w-full"
+            >
+              Rafraîchir la page
+            </button>
+            {process.env.NODE_ENV === 'development' && (
+              <pre className="text-left text-[10px] bg-black/5 p-4 rounded-lg overflow-auto max-h-40">
+                {this.state.error?.toString()}
+              </pre>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+const LazyImage = ({ src, alt, className, referrerPolicy, loading = "lazy" }: { src: string, alt: string, className?: string, referrerPolicy?: React.HTMLAttributeReferrerPolicy, loading?: "lazy" | "eager" }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  return (
+    <div className={cn("relative overflow-hidden w-full h-full", className)}>
+      {!isLoaded && !error && (
+        <div className="absolute inset-0 bg-white/5 animate-pulse flex items-center justify-center">
+          <Heart size={24} className="text-terracotta/20" />
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 bg-white/5 flex items-center justify-center">
+          <User size={24} className="text-anthracite/10" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={cn(
+          "w-full h-full object-cover transition-all duration-700",
+          isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-105"
+        )}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setError(true)}
+        loading={loading}
+        referrerPolicy={referrerPolicy}
+      />
+    </div>
+  );
+};
 
 const ThemedModal = ({ 
   isOpen, 
@@ -79,7 +160,7 @@ const ThemedModal = ({
           >
             <div className={cn(
               "p-6 text-white flex items-center gap-4",
-              type === 'danger' ? "bg-red-500" : type === 'success' ? "bg-green-600" : "bg-terracotta"
+              type === 'danger' ? "bg-indigo-500" : type === 'success' ? "bg-green-600" : "bg-terracotta"
             )}>
               <div className="p-2 bg-white/20 rounded-xl">
                 {type === 'danger' ? <ShieldAlert size={24} /> : type === 'success' ? <CheckCircle size={24} /> : <Sparkles size={24} />}
@@ -106,7 +187,7 @@ const ThemedModal = ({
                   }}
                   className={cn(
                     "flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-transform active:scale-95",
-                    type === 'danger' ? "bg-red-500 shadow-red-500/20" : type === 'success' ? "bg-green-600 shadow-green-600/20" : "bg-terracotta shadow-terracotta/20"
+                    type === 'danger' ? "bg-indigo-500 shadow-indigo-500/20" : type === 'success' ? "bg-green-600 shadow-green-600/20" : "bg-terracotta shadow-terracotta/20"
                   )}
                 >
                   {confirmText}
@@ -187,42 +268,42 @@ const ToastContext = React.createContext<{
 }>({ addToast: () => {} });
 
 const ToastContainer = ({ toasts, removeToast }: { toasts: Toast[], removeToast: (id: string) => void }) => (
-  <div className="fixed bottom-8 right-8 z-[200] flex flex-col gap-3 pointer-events-none">
+  <div className="fixed bottom-8 right-8 z-[200] flex flex-col gap-4 pointer-events-none">
     <AnimatePresence>
       {toasts.map((toast) => (
         <motion.div
           key={toast.id}
-          initial={{ opacity: 0, x: 50, scale: 0.9 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+          initial={{ opacity: 0, x: 50, scale: 0.9, y: 10 }}
+          animate={{ opacity: 1, x: 0, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, x: 20, transition: { duration: 0.2 } }}
           className={cn(
-            "pointer-events-auto flex items-start gap-3 p-4 rounded-2xl shadow-2xl border min-w-[320px] max-w-md",
-            "bg-beige border-white/10"
+            "pointer-events-auto flex items-start gap-4 p-5 rounded-[2rem] shadow-2xl border min-w-[340px] max-w-md",
+            "bg-beige/95 backdrop-blur-md border-white/20"
           )}
         >
           <div className={cn(
-            "p-2 rounded-xl",
-            toast.type === 'error' ? "bg-red-500/10 text-red-400" : 
-            toast.type === 'success' ? "bg-green-500/10 text-green-400" : 
-            "bg-blue-500/10 text-blue-400"
+            "p-3 rounded-2xl shadow-inner",
+            toast.type === 'error' ? "bg-terracotta/10 text-terracotta" : 
+            toast.type === 'success' ? "bg-emerald-500/10 text-emerald-600" : 
+            "bg-anthracite/5 text-anthracite/60"
           )}>
-            {toast.type === 'error' ? <ShieldAlert size={20} /> : 
-             toast.type === 'success' ? <CheckCircle size={20} /> : 
-             <Info size={20} />}
+            {toast.type === 'error' ? <ShieldAlert size={24} /> : 
+             toast.type === 'success' ? <CheckCircle size={24} /> : 
+             <Sparkles size={24} />}
           </div>
-          <div className="flex-1 pt-0.5">
-            <p className="text-sm font-bold text-anthracite">{toast.message}</p>
+          <div className="flex-1 pt-1">
+            <p className="text-base font-serif font-bold text-anthracite leading-tight">{toast.message}</p>
             {toast.reason && (
-              <p className="text-xs text-anthracite/60 mt-1 leading-relaxed">
+              <p className="text-sm text-anthracite/50 mt-1.5 leading-relaxed font-medium">
                 {toast.reason}
               </p>
             )}
           </div>
           <button 
             onClick={() => removeToast(toast.id)}
-            className="p-1 hover:bg-white/5 rounded-lg transition-colors text-anthracite/20 hover:text-anthracite/40"
+            className="p-2 hover:bg-black/5 rounded-xl transition-all text-anthracite/20 hover:text-anthracite/40 active:scale-90"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </motion.div>
       ))}
@@ -250,7 +331,7 @@ const StatusGuard = ({ user, onLogout, children }: { user: any, onLogout?: () =>
 
   if (user.status === 'expired') return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-      <ShieldAlert size={60} className="text-red-500 mb-4" />
+      <ShieldAlert size={60} className="text-indigo-500 mb-4" />
       <h2 className="text-2xl font-serif mb-2">Votre abonnement a expiré</h2>
       <p className="text-anthracite/60 mb-6">Votre accès de 30 jours est terminé. Réabonnez-vous pour continuer à découvrir vos affinités.</p>
       <div className="flex flex-col sm:flex-row gap-4">
@@ -336,7 +417,7 @@ const HelpModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }
             </section>
             <section>
               <h3 className="font-bold text-anthracite mb-2 flex items-center gap-2">
-                <ShieldCheck size={18} className="text-red-500" />
+                <ShieldCheck size={18} className="text-indigo-500" />
                 Bouton Bloquer
               </h3>
               <p className="text-sm">Si un utilisateur vous importune, bloquez-le. Il ne pourra plus vous voir ni vous contacter.</p>
@@ -363,6 +444,45 @@ const HelpModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }
   </AnimatePresence>
 );
 
+const LogoutModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: () => void }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-anthracite/20 backdrop-blur-sm">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="bg-beige rounded-[3rem] p-10 max-w-md w-full shadow-2xl relative border border-white/10 text-center"
+        >
+          <div className="w-20 h-20 bg-terracotta/10 rounded-full flex items-center justify-center mx-auto mb-8">
+            <LogOut size={40} className="text-terracotta" />
+          </div>
+          
+          <h2 className="text-3xl font-serif mb-4 text-anthracite">Déjà envie de nous quitter ?</h2>
+          <p className="text-anthracite/60 mb-10 leading-relaxed">
+            Votre prochaine belle rencontre n'est peut-être qu'à un clic. Êtes-vous sûr de vouloir vous déconnecter maintenant ?
+          </p>
+          
+          <div className="flex flex-col gap-4">
+            <button 
+              onClick={onConfirm}
+              className="btn-primary py-4 text-lg"
+            >
+              Oui, me déconnecter
+            </button>
+            <button 
+              onClick={onClose}
+              className="btn-secondary py-4 text-lg border-transparent hover:bg-black/5"
+            >
+              Rester encore un peu
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+);
+
 const ReportModal = ({ isOpen, onClose, targetId, targetName }: { isOpen: boolean, onClose: () => void, targetId: number, targetName: string }) => {
   const { addToast } = useContext(ToastContext);
   const [reason, setReason] = useState('Arnaque / Faux profil');
@@ -377,7 +497,7 @@ const ReportModal = ({ isOpen, onClose, targetId, targetName }: { isOpen: boolea
       body: JSON.stringify({ reportedId: targetId, reason, details })
     });
     if (res.ok) {
-      addToast("Signalement envoyé", "success", "Merci. Votre signalement a été enregistré et sera examiné par notre équipe.");
+      addToast("Signalement reçu", "success", "Votre vigilance nous aide à maintenir l'excellence de notre communauté.");
       onClose();
     }
     setLoading(false);
@@ -397,7 +517,7 @@ const ReportModal = ({ isOpen, onClose, targetId, targetName }: { isOpen: boolea
               <X size={20} />
             </button>
             <h2 className="text-2xl font-serif mb-2 flex items-center gap-2">
-              <ShieldAlert className="text-red-500" />
+              <ShieldAlert className="text-indigo-500" />
               Signaler {targetName}
             </h2>
             <p className="text-sm text-anthracite/60 mb-6">Aidez-nous à garder <span translate="no">Affinity70</span> sûr et authentique.</p>
@@ -406,7 +526,7 @@ const ReportModal = ({ isOpen, onClose, targetId, targetName }: { isOpen: boolea
               <div>
                 <label className="block text-xs font-bold uppercase text-anthracite/40 mb-1">Raison du signalement</label>
                 <select 
-                  className="w-full p-3 rounded-xl border border-black/10 outline-none focus:ring-2 focus:ring-red-500/20"
+                  className="w-full p-3 rounded-xl border border-black/10 outline-none focus:ring-2 focus:ring-indigo-500/20"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 >
@@ -420,19 +540,19 @@ const ReportModal = ({ isOpen, onClose, targetId, targetName }: { isOpen: boolea
               <div>
                 <label className="block text-xs font-bold uppercase text-anthracite/40 mb-1">Détails supplémentaires</label>
                 <textarea 
-                  className="w-full p-3 rounded-xl border border-black/10 outline-none focus:ring-2 focus:ring-red-500/20 h-32"
+                  className="w-full p-3 rounded-xl border border-black/10 outline-none focus:ring-2 focus:ring-indigo-500/20 h-32"
                   placeholder="Décrivez ce qui s'est passé..."
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
                 />
               </div>
-              <div className="bg-red-50 p-4 rounded-xl text-xs text-red-600 italic">
+              <div className="bg-indigo-50 p-4 rounded-xl text-xs text-indigo-600 italic">
                 Rappel : Signaler un compte pour de fausses raisons peut entraîner la suspension de votre propre compte.
               </div>
               <button 
                 onClick={handleSubmit}
                 disabled={loading}
-                className="w-full bg-red-500 text-white py-4 rounded-xl font-bold hover:bg-red-600 transition-all disabled:opacity-50"
+                className="w-full bg-indigo-500 text-white py-4 rounded-xl font-bold hover:bg-indigo-600 transition-all disabled:opacity-50"
               >
                 {loading ? "Envoi..." : "Envoyer le signalement"}
               </button>
@@ -553,7 +673,13 @@ const DatingAssistant = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
     setLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        setMessages(prev => [...prev, { role: 'assistant', content: "L'assistant IA n'est pas configuré. Veuillez contacter le support." }]);
+        setLoading(false);
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       const model = "gemini-3-flash-preview";
       
       const chat = ai.chats.create({
@@ -589,14 +715,14 @@ const DatingAssistant = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
             exit={{ opacity: 0, y: 100 }}
             className="bg-beige w-full max-w-lg h-[80dvh] sm:h-[600px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-white/5"
           >
-            <div className="p-6 bg-terracotta text-white flex justify-between items-center">
+            <div className="p-6 bg-terracotta text-beige flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 rounded-xl">
                   <Sparkles size={24} />
                 </div>
                 <div>
                   <h2 className="font-serif text-xl font-bold">Assistant Affinity70</h2>
-                  <p className="text-xs text-white/70">Propulsé par l'IA</p>
+                  <p className="text-xs text-beige/70">Propulsé par l'IA</p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
@@ -607,12 +733,12 @@ const DatingAssistant = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-offwhite/50">
               {messages.map((msg, i) => (
                 <div key={i} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
-                  <div className={cn(
-                    "max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
-                    msg.role === 'user' 
-                      ? "bg-terracotta text-white rounded-tr-none" 
-                      : "bg-white text-anthracite rounded-tl-none border border-black/5"
-                  )}>
+                    <div className={cn(
+                      "max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
+                      msg.role === 'user' 
+                        ? "bg-terracotta text-beige rounded-tr-none" 
+                        : "bg-white text-beige rounded-tl-none border border-black/5"
+                    )}>
                     {msg.content}
                   </div>
                 </div>
@@ -641,7 +767,7 @@ const DatingAssistant = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
                 <button 
                   onClick={handleSend}
                   disabled={loading || !input.trim()}
-                  className="p-4 bg-terracotta text-white rounded-xl hover:bg-terracotta/90 transition-all disabled:opacity-50"
+                  className="p-4 bg-terracotta text-beige rounded-xl hover:bg-terracotta/90 transition-all disabled:opacity-50"
                 >
                   <Send size={20} />
                 </button>
@@ -775,7 +901,7 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
                     <div className="absolute inset-0 bg-yellow-400/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />
                     <Lightbulb size={28} className="relative z-10 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]" />
                   </button>
-                  <button onClick={onLogout} className="flex items-center gap-2 text-anthracite/70 hover:text-red-500 transition-colors">
+                  <button onClick={onLogout} className="flex items-center gap-2 text-anthracite/70 hover:text-indigo-500 transition-colors">
                     <LogOut size={18} />
                     <span>Quitter</span>
                   </button>
@@ -790,8 +916,11 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
 
             <div className="md:hidden flex items-center gap-4">
               {user && (
-                <button onClick={() => setIsHelpOpen(true)} className="p-2 text-anthracite/40">
-                  <HelpCircle size={20} />
+                <button 
+                  onClick={() => setIsOpen(!isOpen)} 
+                  className="p-2 text-anthracite/60 hover:text-terracotta transition-colors"
+                >
+                  <Menu size={24} />
                 </button>
               )}
               <button 
@@ -838,6 +967,22 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
                   <Link to="/" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
                     <Heart size={20} className="text-terracotta" /> Accueil
                   </Link>
+                  {user && (
+                    <>
+                      <Link to="/discover" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
+                        <Search size={20} className="text-terracotta" /> Découvrir
+                      </Link>
+                      <Link to="/favorites" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
+                        <Heart size={20} className="text-terracotta" /> Favoris
+                      </Link>
+                      <Link to="/chat" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
+                        <MessageCircle size={20} className="text-terracotta" /> Messages
+                      </Link>
+                      <Link to="/profile" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
+                        <User size={20} className="text-terracotta" /> Mon Profil
+                      </Link>
+                    </>
+                  )}
                   <Link to="/about" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
                     <Info size={20} className="text-terracotta" /> À propos
                   </Link>
@@ -900,7 +1045,7 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
                       Administration
                     </Link>
                   )}
-                  <button onClick={() => { onLogout(); setIsOpen(false); }} className="text-left text-red-500">Quitter</button>
+                  <button onClick={() => { onLogout(); setIsOpen(false); }} className="text-left text-indigo-500">Quitter</button>
                 </>
               ) : (
                 <>
@@ -1077,9 +1222,9 @@ const ForgotPassword = () => {
       const data = await res.json();
       if (res.ok) {
         setSent(true);
-        addToast("Email envoyé", "success", data.message);
+        addToast("Lien envoyé", "success", "Un email de réinitialisation a été envoyé à votre adresse.");
       } else {
-        addToast("Erreur", "error", data.error || "Une erreur est survenue");
+        addToast("Oups", "error", data.error || "Nous n'avons pas pu trouver de compte avec cet email.");
       }
     } catch (err) {
       addToast("Erreur", "error", "Impossible de contacter le serveur");
@@ -1159,10 +1304,10 @@ const ResetPassword = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        addToast("Succès", "success", "Votre mot de passe a été réinitialisé.");
+        addToast("Mot de passe mis à jour", "success", "Votre nouveau mot de passe est prêt. Vous pouvez maintenant vous connecter.");
         navigate('/login');
       } else {
-        addToast("Erreur", "error", data.error || "Lien invalide ou expiré.");
+        addToast("Lien expiré", "error", data.error || "Ce lien de réinitialisation n'est plus valide.");
       }
     } catch (err) {
       addToast("Erreur", "error", "Impossible de contacter le serveur");
@@ -1214,7 +1359,7 @@ const ResetPassword = () => {
 const Register = ({ setUser }: { setUser: (u: any) => void }) => {
   const { addToast } = useContext(ToastContext);
   const [step, setStep] = useState(0);
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
   const [formData, setFormData] = useState({
     email: '', password: '', firstName: '', lastName: '', gender: 'Femme',
     age: 16, height: 160, hobbies: '', bio: '', talent: '', religion: 'Protestant(e)',
@@ -1239,8 +1384,8 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
       addToast("Questionnaire incomplet", "error", "Veuillez répondre à toutes les questions (FUN et SÉRIEUSE) avant de finaliser.");
       return;
     }
-    if (!photo) {
-      addToast("Photo manquante", "error", "Veuillez ajouter votre photo de profil pour finaliser votre inscription.");
+    if (photos.length === 0) {
+      addToast("Photo manquante", "error", "Veuillez ajouter au moins une photo de profil pour finaliser votre inscription.");
       return;
     }
 
@@ -1256,14 +1401,14 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
       
       localStorage.setItem('token', authData.token);
 
-      // Send profile data with photo
+      // Send profile data with photos
       const profileData = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
         profileData.append(key, value.toString());
       });
-      if (photo) {
-        profileData.append('photo', photo);
-      }
+      (photos as File[]).forEach(p => {
+        profileData.append('photos', p);
+      });
 
       const profRes = await fetch('/api/profile', {
         method: 'POST',
@@ -1760,25 +1905,45 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
             </div>
 
             <div className="pt-4 border-t border-black/5">
-              <h3 className="text-xl font-serif mb-2 text-center">Votre plus beau sourire</h3>
+              <h3 className="text-xl font-serif mb-2 text-center">Vos plus beaux sourires</h3>
               <p className="text-terracotta text-xs font-medium italic mb-4 text-center">"Soyez belles, soyez beaux... Mais restez vrais. 😉"</p>
               
-              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black/10 rounded-3xl bg-black/5 hover:bg-black/10 transition-colors cursor-pointer">
-                {photo ? (
-                  <div className="relative w-40 h-40 mb-2">
-                    <img src={URL.createObjectURL(photo)} className="w-full h-full object-cover rounded-2xl shadow-lg" alt="Preview" />
-                    <button onClick={() => setPhoto(null)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md">
-                      <X size={16} />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                {photos.map((p, i) => (
+                  <div key={i} className="relative aspect-square rounded-2xl overflow-hidden shadow-lg group">
+                    <img src={URL.createObjectURL(p)} className="w-full h-full object-cover" alt="Preview" />
+                    <button 
+                      onClick={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                      className="absolute top-2 right-2 bg-indigo-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
                     </button>
+                    {i === 0 && (
+                      <div className="absolute bottom-0 inset-x-0 bg-terracotta/80 text-white text-[8px] font-black uppercase py-1 text-center">
+                        Principale
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <label className="cursor-pointer flex flex-col items-center w-full">
-                    <Camera size={40} className="text-anthracite/20 mb-2" />
-                    <span className="text-xs text-anthracite/60">Cliquez pour ajouter votre photo</span>
-                    <input type="file" className="hidden" accept="image/*" onChange={e => setPhoto(e.target.files?.[0] || null)} />
+                ))}
+                
+                {photos.length < 6 && (
+                  <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-black/10 rounded-2xl bg-black/5 hover:bg-black/10 transition-colors cursor-pointer">
+                    <Camera size={24} className="text-anthracite/20 mb-1" />
+                    <span className="text-[10px] text-anthracite/60 text-center px-2">Ajouter</span>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      multiple 
+                      onChange={e => {
+                        const files = Array.from(e.target.files || []);
+                        setPhotos(prev => [...prev, ...files].slice(0, 6));
+                      }} 
+                    />
                   </label>
                 )}
               </div>
+              <p className="text-[10px] text-center text-anthracite/40">Vous pouvez ajouter jusqu'à 6 photos. La première sera votre photo principale.</p>
             </div>
 
             <div className="flex gap-4 pt-4">
@@ -1803,6 +1968,7 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
 
 
 const Subscription = ({ user, onLogout }: { user: any, onLogout?: () => void }) => {
+  const { addToast } = useContext(ToastContext);
   const [mvolaNumber, setMvolaNumber] = useState('');
   const [transactionId, setTransactionId] = useState('');
   const [reference, setReference] = useState('');
@@ -1827,6 +1993,7 @@ const Subscription = ({ user, onLogout }: { user: any, onLogout?: () => void }) 
 
     if (res.ok) {
       setSuccess(true);
+      addToast("Paiement enregistré", "success", "Votre demande est en cours de traitement. Merci de votre patience.");
       // Optional: trigger user refresh
       window.location.reload();
     }
@@ -1955,7 +2122,7 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user
     const data = await res.json();
     if (data.success) {
       if (data.match) {
-        addToast("Nouveau Match !", "success", "C'est un match ! Vous pouvez maintenant discuter.");
+        addToast("Affinité confirmée ✨", "success", "C'est un match ! Une nouvelle histoire commence peut-être ici.");
       }
       setProfiles(profiles.filter(p => p.user_id !== targetId));
     }
@@ -2000,6 +2167,16 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user
       const valB = sortBy === 'compatibility' ? b.compatibility : b.age;
       return sortOrder === 'asc' ? valA - valB : valB - valA;
     });
+
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 500);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Preload images for better performance
   useEffect(() => {
@@ -2197,11 +2374,12 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user
             className="group relative bg-white/5 rounded-[3rem] overflow-hidden border border-white/5 hover:border-accent-light/30 transition-all duration-500 shadow-2xl"
           >
             <div className="aspect-[3/4] relative overflow-hidden">
-              <img 
+              <LazyImage 
                 src={p.photo_url || `https://picsum.photos/seed/${p.user_id}/600/800`} 
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+                className="transition-transform duration-1000 group-hover:scale-110" 
                 alt={p.first_name}
                 referrerPolicy="no-referrer"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-offwhite via-transparent to-transparent opacity-80" />
               
@@ -2243,7 +2421,7 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user
                 <div className="flex gap-4 w-full">
                   <button 
                     onClick={() => handleLike(p.user_id, 'pass')}
-                    className="flex-1 bg-white/5 text-anthracite/20 hover:text-red-500 hover:bg-red-500/10 py-4 rounded-2xl transition-all flex items-center justify-center border border-white/5"
+                    className="flex-1 bg-white/5 text-anthracite/20 hover:text-indigo-500 hover:bg-indigo-500/10 py-4 rounded-2xl transition-all flex items-center justify-center border border-white/5"
                   >
                     <ThumbsDown size={24} />
                   </button>
@@ -2271,6 +2449,21 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user
           <p className="text-anthracite/20 max-w-xs mx-auto">Essayez d'ajuster vos filtres pour découvrir de nouveaux profils.</p>
         </div>
       )}
+
+      {/* Back to Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0, y: 20 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-24 left-6 z-[100] w-14 h-14 bg-white/10 backdrop-blur-xl text-anthracite/40 rounded-full shadow-2xl flex items-center justify-center hover:bg-white/20 transition-all border border-white/10"
+          >
+            <ArrowUpDown size={24} className="rotate-180" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -2284,6 +2477,83 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [otherProfile, setOtherProfile] = useState<any>(null);
+  const [icebreakers, setIcebreakers] = useState<any[]>([]);
+  const [generatingIcebreakers, setGeneratingIcebreakers] = useState(false);
+  const [myProfile, setMyProfile] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/me', { headers: getAuthHeaders() })
+      .then(res => res.json())
+      .then(data => setMyProfile(data.profile));
+  }, []);
+
+  const generateIcebreakers = async () => {
+    if (!otherProfile || !myProfile || generatingIcebreakers) return;
+    setGeneratingIcebreakers(true);
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        console.warn("GEMINI_API_KEY is not set");
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
+      const model = "gemini-3-flash-preview";
+      
+      const prompt = `Génère 3 suggestions de questions ou de sujets de discussion (icebreakers) pour entamer une conversation entre deux utilisateurs d'une application de rencontre à Madagascar.
+      
+      Utilisateur 1 (Moi):
+      - Prénom: ${myProfile.first_name}
+      - Hobbies: ${myProfile.hobbies}
+      - Bio: ${myProfile.bio}
+      - Question amusante: ${myProfile.fun_question}
+      - Question sérieuse: ${myProfile.serious_question}
+      
+      Utilisateur 2 (${otherProfile.first_name}):
+      - Hobbies: ${otherProfile.hobbies}
+      - Bio: ${otherProfile.bio}
+      - Question amusante: ${otherProfile.fun_question}
+      - Question sérieuse: ${otherProfile.serious_question}
+      - Talent: ${otherProfile.talent}
+      
+      Points communs ou de compatibilité: ${otherProfile.compatibility}% d'affinité.
+      
+      Les icebreakers doivent être personnalisés, bienveillants, et viser à faciliter le démarrage d'une conversation significative.
+      Réponds uniquement avec un tableau JSON de 3 chaînes de caractères.`;
+
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      const text = response.text || "[]";
+      const cleanJson = text.replace(/```json|```/g, "").trim();
+      let suggestions = [];
+      try {
+        suggestions = JSON.parse(cleanJson);
+      } catch (e) {
+        console.error("Failed to parse icebreakers JSON:", e);
+      }
+      
+      for (const content of suggestions) {
+        await fetch('/api/icebreakers', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ otherId: id, content })
+        });
+      }
+
+      const res = await fetch(`/api/icebreakers/${id}`, { headers: getAuthHeaders() });
+      const data = await res.json();
+      setIcebreakers(data);
+    } catch (err) {
+      console.error("Failed to generate icebreakers:", err);
+    } finally {
+      setGeneratingIcebreakers(false);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/conversations', { headers: getAuthHeaders() })
@@ -2296,18 +2566,38 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
 
   useEffect(() => {
     if (id) {
-      fetch(`/api/messages/${id}`, { headers: getAuthHeaders() })
-        .then(res => res.json())
-        .then(data => setMessages(data));
+      const loadChatData = async () => {
+        try {
+          const [msgsRes, profileRes, ibsRes] = await Promise.all([
+            fetch(`/api/messages/${id}`, { headers: getAuthHeaders() }),
+            fetch(`/api/profile/${id}`, { headers: getAuthHeaders() }),
+            fetch(`/api/icebreakers/${id}`, { headers: getAuthHeaders() })
+          ]);
 
-      fetch(`/api/profile/${id}`, { headers: getAuthHeaders() })
-        .then(res => res.json())
-        .then(data => setOtherProfile(data));
+          const msgs = await msgsRes.json();
+          const profile = await profileRes.json();
+          const ibs = await ibsRes.json();
+
+          setMessages(msgs);
+          setOtherProfile(profile);
+          setIcebreakers(ibs);
+
+          // Only generate if no messages yet and no icebreakers
+          if (msgs.length === 0 && ibs.length === 0 && profile && myProfile) {
+            generateIcebreakers();
+          }
+        } catch (err) {
+          console.error("Failed to load chat data:", err);
+        }
+      };
+
+      loadChatData();
     } else {
       setMessages([]);
       setOtherProfile(null);
+      setIcebreakers([]);
     }
-  }, [id]);
+  }, [id, myProfile?.user_id]);
 
   useEffect(() => {
     if (socket) {
@@ -2346,7 +2636,7 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
   if (loading) return <div className="p-12 text-center">Chargement des conversations...</div>;
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 h-[80dvh] flex gap-6">
+    <div className="max-w-6xl mx-auto py-4 md:py-8 px-4 h-[80dvh] flex gap-6">
       {/* Conversations List */}
       <div className={cn("w-full md:w-80 bg-beige rounded-3xl shadow-sm border border-white/5 overflow-hidden flex flex-col", id ? "hidden md:flex" : "flex")}>
         <div className="p-6 border-b border-black/5">
@@ -2438,6 +2728,25 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
                   Vous figurez désormais dans vos favoris respectifs
                 </div>
               )}
+              {messages.length === 0 && !generatingIcebreakers && icebreakers.length === 0 && (
+                <div className="flex-grow flex flex-col items-center justify-center text-center p-8 space-y-4">
+                  <div className="w-16 h-16 bg-terracotta/10 rounded-full flex items-center justify-center text-terracotta">
+                    <Sparkles size={32} />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-xl">Brisez la glace !</h3>
+                    <p className="text-sm text-anthracite/60">C'est le moment idéal pour envoyer votre premier message à {otherProfile?.first_name}.</p>
+                  </div>
+                </div>
+              )}
+              {generatingIcebreakers && (
+                <div className="flex justify-center p-4">
+                  <div className="flex items-center gap-2 text-xs text-anthracite/40 animate-pulse">
+                    <Wand2 size={14} />
+                    Génération d'icebreakers personnalisés...
+                  </div>
+                </div>
+              )}
               {messages.map((msg, i) => (
                 <div
                   key={i}
@@ -2455,6 +2764,35 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
                 </div>
               ))}
             </div>
+
+            {/* Icebreakers */}
+            {icebreakers.length > 0 && (
+              <div className="px-4 py-3 border-t border-black/5 bg-beige/30">
+                <div className="flex items-center gap-2 mb-2 text-[10px] font-black uppercase tracking-widest text-anthracite/40 px-1">
+                  <Lightbulb size={12} className="text-terracotta" />
+                  Suggestions d'icebreakers
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide px-1">
+                  {icebreakers.map((ib) => (
+                    <button
+                      key={ib.id}
+                      onClick={() => {
+                        setNewMessage(ib.content);
+                        fetch('/api/icebreakers/use', {
+                          method: 'POST',
+                          headers: getAuthHeaders(),
+                          body: JSON.stringify({ id: ib.id })
+                        });
+                        setIcebreakers(prev => prev.filter(i => i.id !== ib.id));
+                      }}
+                      className="flex-shrink-0 px-4 py-2 bg-white border border-black/5 rounded-xl text-xs text-anthracite hover:border-terracotta/50 hover:shadow-sm transition-all whitespace-nowrap"
+                    >
+                      {ib.content}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Input Area */}
             <form onSubmit={handleSend} className="p-4 border-t border-black/5 flex gap-2">
@@ -2482,6 +2820,7 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
 
   useEffect(() => {
@@ -2514,7 +2853,7 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
 
   if (user?.status === 'expired') return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-      <ShieldAlert size={60} className="text-red-500 mb-4" />
+      <ShieldAlert size={60} className="text-indigo-500 mb-4" />
       <h2 className="text-2xl font-serif mb-2">Accès restreint</h2>
       <p className="text-anthracite/60 mb-6">Votre abonnement a expiré. Veuillez renouveler votre accès pour voir ce profil.</p>
       <Link to="/subscription" className="btn-primary">Se réabonner</Link>
@@ -2531,7 +2870,7 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
   );
 
   if (loading) return <div className="p-12 text-center">Chargement du profil...</div>;
-  if (error || !profile) return <div className="p-12 text-center text-red-500">Profil introuvable.</div>;
+  if (error || !profile) return <div className="p-12 text-center text-indigo-500">Profil introuvable.</div>;
 
   const toggleFavorite = async () => {
     const method = profile.isFavorite ? 'DELETE' : 'POST';
@@ -2545,15 +2884,16 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
   };
 
   const handleBlock = async () => {
-    if (!window.confirm(`Voulez-vous vraiment bloquer ${profile.first_name} ?`)) return;
     const res = await fetch('/api/block', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ blockedId: profile.user_id })
     });
     if (res.ok) {
-      addToast("Utilisateur bloqué", "info", `${profile.first_name} a été bloqué(e).`);
+      addToast("Tranquillité assurée", "success", `${profile.first_name} ne pourra plus vous contacter ni voir votre profil.`);
       window.location.href = '/discover';
+    } else {
+      addToast("Une petite erreur", "error", "Nous n'avons pas pu bloquer ce profil pour le moment.");
     }
   };
 
@@ -2567,9 +2907,8 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
         <div className="md:col-span-1">
           <div className="sticky top-24 space-y-6">
             <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-lg relative group bg-beige">
-              <img 
+              <LazyImage 
                 src={photos[activePhotoIndex].url} 
-                className="w-full h-full object-cover"
                 alt={profile.first_name}
               />
               
@@ -2616,7 +2955,7 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
                     i === activePhotoIndex ? "border-terracotta scale-105" : "border-transparent opacity-60"
                   )}
                 >
-                  <img src={p.url} className="w-full h-full object-cover" alt="" />
+                  <LazyImage src={p.url} alt="" />
                 </button>
               ))}
             </div>
@@ -2630,25 +2969,42 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
                 onClick={toggleFavorite}
                 className={cn(
                   "w-full flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-sm font-medium",
-                  profile.isFavorite ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-beige border-white/5 text-anthracite/40 hover:text-red-500"
+                  profile.isFavorite ? "bg-terracotta/10 border-terracotta/20 text-terracotta" : "bg-beige border-white/5 text-anthracite/40 hover:text-terracotta"
                 )}
               >
                 <Heart size={18} fill={profile.isFavorite ? "currentColor" : "none"} />
                 {profile.isFavorite ? "Dans vos favoris" : "Ajouter aux favoris"}
               </button>
               <div className="pt-4 border-t border-black/5 space-y-2">
-                <button onClick={handleBlock} className="w-full flex items-center justify-center gap-2 py-2 text-anthracite/40 hover:text-red-500 transition-colors text-xs font-medium">
-                  <ShieldCheck size={14} />
+                <button 
+                  onClick={() => setIsBlockModalOpen(true)} 
+                  className="w-full flex items-center justify-center gap-2 py-2 text-anthracite/40 hover:text-terracotta transition-colors text-xs font-medium"
+                >
+                  <ShieldAlert size={14} />
                   Bloquer ce profil
                 </button>
-                <button onClick={() => setIsReportOpen(true)} className="w-full flex items-center justify-center gap-2 py-2 text-anthracite/40 hover:text-orange-500 transition-colors text-xs font-medium">
-                  <ShieldAlert size={14} />
-                  Signaler ce compte
+                <button 
+                  onClick={() => setIsReportOpen(true)} 
+                  className="w-full flex items-center justify-center gap-2 py-2 text-anthracite/40 hover:text-terracotta transition-colors text-xs font-medium"
+                >
+                  <Flag size={14} />
+                  Signaler ce profil
                 </button>
               </div>
             </div>
           </div>
         </div>
+
+        <ThemedModal 
+          isOpen={isBlockModalOpen}
+          onClose={() => setIsBlockModalOpen(false)}
+          onConfirm={handleBlock}
+          title="Bloquer ce profil ?"
+          message={`En bloquant ${profile.first_name}, vous ne pourrez plus échanger et vos profils respectifs deviendront invisibles l'un pour l'autre.`}
+          confirmText="Oui, bloquer"
+          cancelText="Annuler"
+          type="danger"
+        />
         
         <div className="md:col-span-2 space-y-8">
           <div className="flex justify-between items-start">
@@ -2854,7 +3210,7 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
   };
 
   useEffect(() => {
-    if (user?.status === 'active') {
+    if (user) {
       fetch('/api/blocks', { headers: getAuthHeaders() })
         .then(res => res.json())
         .then(setBlockedUsers);
@@ -2969,16 +3325,21 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
     });
     if (res.ok) {
       setBlockedUsers(blockedUsers.filter(u => u.user_id !== id));
+      addToast("Profil débloqué", "success", "Vous pouvez à nouveau interagir avec cette personne.");
+    } else {
+      addToast("Oups", "error", "Impossible de débloquer ce profil pour le moment.");
     }
   };
 
   const uploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     
     setSaveLoading(true);
     const formData = new FormData();
-    formData.append('photo', file);
+    (files as File[]).forEach(file => {
+      formData.append('photos', file);
+    });
     
     try {
       const res = await fetch('/api/photos', {
@@ -2988,11 +3349,11 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
       });
       const data = await res.json();
       if (res.ok) {
-        setPhotos(prev => [data, ...prev]);
-        addToast("Photo ajoutée", "success", "Votre galerie a été mise à jour.");
+        setPhotos(data);
+        addToast("Photos ajoutées", "success", "Votre galerie a été mise à jour.");
       }
     } catch (err) {
-      addToast("Erreur", "error", "Impossible d'ajouter la photo.");
+      addToast("Erreur", "error", "Impossible d'ajouter les photos.");
     } finally {
       setSaveLoading(false);
     }
@@ -3031,59 +3392,46 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
     }
   };
 
-  if (user?.status === 'expired') return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-      <ShieldAlert size={60} className="text-red-500 mb-4" />
-      <h2 className="text-2xl font-serif mb-2">Compte restreint</h2>
-      <p className="text-anthracite/60 mb-6">Votre abonnement a expiré. Veuillez renouveler votre accès pour voir vos informations.</p>
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Link to="/subscription" className="btn-primary">Se réabonner</Link>
-        {onLogout && (
-          <button onClick={onLogout} className="btn-secondary flex items-center justify-center gap-2">
-            <LogOut size={18} />
-            Se déconnecter
-          </button>
-        )}
-      </div>
-    </div>
-  );
-
-  if (user?.status === 'pending') return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-      <Clock size={60} className="text-yellow-500 mb-4 animate-pulse" />
-      <h2 className="text-2xl font-serif mb-2">Validation en cours</h2>
-      <p className="text-anthracite/60 mb-6">Votre profil est en cours de vérification par notre équipe. Vous pourrez le modifier dès qu'il sera activé.</p>
-      <div className="flex flex-col sm:flex-row gap-4">
-        <button onClick={() => window.location.reload()} className="btn-primary">Actualiser</button>
-        {onLogout && (
-          <button onClick={onLogout} className="btn-secondary flex items-center justify-center gap-2">
-            <LogOut size={18} />
-            Se déconnecter
-          </button>
-        )}
-      </div>
-    </div>
-  );
-
-  if (user?.status !== 'active') return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-      <Heart size={60} className="text-terracotta mb-4" />
-      <h2 className="text-2xl font-serif mb-2">Merci pour votre confiance</h2>
-      <p className="text-anthracite/60 mb-6">Pour accéder à votre profil, veuillez vous abonner.</p>
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Link to="/subscription" className="btn-primary">S'abonner maintenant</Link>
-        {onLogout && (
-          <button onClick={onLogout} className="btn-secondary flex items-center justify-center gap-2">
-            <LogOut size={18} />
-            Se déconnecter
-          </button>
-        )}
-      </div>
-    </div>
-  );
+  if (!user) return <Navigate to="/login" />;
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 space-y-8">
+      {user.status === 'expired' && (
+        <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <ShieldAlert className="text-indigo-500" size={32} />
+            <div>
+              <h3 className="font-bold text-indigo-900">Abonnement expiré</h3>
+              <p className="text-sm text-indigo-700">Renouvelez votre accès pour continuer à découvrir des profils.</p>
+            </div>
+          </div>
+          <Link to="/subscription" className="btn-primary whitespace-nowrap">Se réabonner</Link>
+        </div>
+      )}
+
+      {user.status === 'pending' && (
+        <div className="bg-yellow-50 border border-yellow-100 p-6 rounded-3xl flex items-center gap-4">
+          <Clock className="text-yellow-600 animate-pulse" size={32} />
+          <div>
+            <h3 className="font-bold text-yellow-900">Validation en cours</h3>
+            <p className="text-sm text-yellow-700">Votre profil est en cours de vérification. Il sera visible dès validation.</p>
+          </div>
+        </div>
+      )}
+
+      {user.status === 'inactive' && (
+        <div className="bg-terracotta/5 border border-terracotta/10 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Heart className="text-terracotta" size={32} />
+            <div>
+              <h3 className="font-bold text-anthracite">Bienvenue sur Affinity70</h3>
+              <p className="text-sm text-anthracite/60">Complétez votre profil et abonnez-vous pour commencer.</p>
+            </div>
+          </div>
+          <Link to="/subscription" className="btn-primary whitespace-nowrap">S'abonner (2 000 Ar)</Link>
+        </div>
+      )}
+
       <div className="card">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-serif">Mon Profil</h2>
@@ -3116,7 +3464,7 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
               <label className="cursor-pointer bg-terracotta text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-terracotta/90 transition-all flex items-center gap-2">
                 <Camera size={16} />
                 Ajouter une photo
-                <input type="file" className="hidden" accept="image/*" onChange={uploadPhoto} disabled={saveLoading} />
+                <input type="file" className="hidden" accept="image/*" multiple onChange={uploadPhoto} disabled={saveLoading} />
               </label>
             </div>
             
@@ -3135,7 +3483,7 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
                     {photo.is_primary === 0 && (
                       <button 
                         onClick={() => setPrimaryPhoto(photo.id)}
-                        className="p-2 bg-white text-anthracite rounded-full hover:bg-terracotta hover:text-white transition-all"
+                        className="p-2 bg-white text-beige rounded-full hover:bg-terracotta hover:text-beige transition-all"
                         title="Définir comme principale"
                       >
                         <Star size={16} />
@@ -3143,7 +3491,7 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
                     )}
                     <button 
                       onClick={() => setPhotoToDelete(photo.id)}
-                      className="p-2 bg-white text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all"
+                      className="p-2 bg-white text-indigo-500 rounded-full hover:bg-indigo-500 hover:text-white transition-all"
                       title="Supprimer"
                     >
                       <Trash2 size={16} />
@@ -3394,12 +3742,12 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
             </div>
           </div>
 
-          <div className="p-4 border border-red-100 rounded-2xl bg-red-50/30">
-            <h4 className="font-bold text-red-500 mb-1">Zone de danger</h4>
+          <div className="p-4 border border-indigo-100 rounded-2xl bg-indigo-50/30">
+            <h4 className="font-bold text-indigo-500 mb-1">Zone de danger</h4>
             <p className="text-xs text-anthracite/60 mb-4">La suppression de votre compte est définitive et immédiate.</p>
             <button 
               onClick={() => setIsDeleteModalOpen(true)}
-              className="flex items-center gap-2 text-red-500 text-sm font-bold hover:underline"
+              className="flex items-center gap-2 text-indigo-500 text-sm font-bold hover:underline"
             >
               <Trash2 size={16} />
               Supprimer mon compte définitivement
@@ -3410,7 +3758,7 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
 
       <div className="card">
         <h2 className="text-2xl font-serif mb-6 flex items-center gap-2">
-          <ShieldCheck className="text-red-500" />
+          <ShieldCheck className="text-indigo-500" />
           Utilisateurs bloqués
         </h2>
         {blockedUsers.length === 0 ? (
@@ -3503,15 +3851,14 @@ const Favorites = ({ user }: { user: any }) => {
             >
               <button 
                 onClick={() => removeFavorite(p.user_id)}
-                className="absolute top-4 right-4 z-10 p-2 bg-beige/80 backdrop-blur-sm rounded-full text-red-500 shadow-md hover:bg-beige transition-all opacity-0 group-hover:opacity-100"
+                className="absolute top-4 right-4 z-10 p-2 bg-beige/80 backdrop-blur-sm rounded-full text-indigo-500 shadow-md hover:bg-beige transition-all opacity-0 group-hover:opacity-100"
                 title="Retirer des favoris"
               >
                 <Trash2 size={16} />
               </button>
               <div className="aspect-[3/4] bg-beige/50">
-                <img 
+                <LazyImage 
                   src={p.photo_url || `https://picsum.photos/seed/${p.user_id}/400/600`} 
-                  className="w-full h-full object-cover"
                   alt={p.first_name}
                 />
               </div>
@@ -3593,9 +3940,9 @@ const Admin = () => {
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Erreur lors de l'approbation");
           setTxs(txs.filter(t => t.id !== txId));
-          addToast("Accès validé ✨", "success", "L'utilisateur a été notifié de son nouveau statut.");
+          addToast("Accès validé ✨", "success", "L'utilisateur a été notifié et peut désormais profiter de son abonnement.");
         } catch (err) {
-          addToast("Erreur", "error", err instanceof Error ? err.message : "Une erreur est survenue");
+          addToast("Action impossible", "error", "Nous n'avons pas pu valider cet accès. Veuillez réessayer.");
         } finally {
           setActionLoading(null);
         }
@@ -3944,6 +4291,7 @@ export default function App() {
   const [socket, setSocket] = useState<any>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const addToast = (message: string, type: 'error' | 'success' | 'info', reason?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -4004,9 +4352,14 @@ export default function App() {
   }, []);
 
   const logout = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const performLogout = () => {
     localStorage.removeItem('token');
     setUser(null);
     setSocket(null);
+    setIsLogoutModalOpen(false);
   };
 
   if (loading) return (
@@ -4024,8 +4377,9 @@ export default function App() {
   );
 
   return (
-    <ToastContext.Provider value={{ addToast }}>
-      <Router>
+    <AppErrorBoundary>
+      <ToastContext.Provider value={{ addToast }}>
+        <Router>
         <div className="min-h-dvh flex flex-col">
           <Navbar user={user} onLogout={logout} socket={socket} />
           <main className="flex-grow">
@@ -4132,7 +4486,13 @@ export default function App() {
         </motion.button>
       )}
       <DatingAssistant isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} user={user} />
+      <LogoutModal 
+        isOpen={isLogoutModalOpen} 
+        onClose={() => setIsLogoutModalOpen(false)} 
+        onConfirm={performLogout} 
+      />
     </Router>
   </ToastContext.Provider>
+  </AppErrorBoundary>
 );
 }
