@@ -97,9 +97,27 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const LazyImage = ({ src, alt, className, referrerPolicy, loading = "lazy" }: { src: string, alt: string, className?: string, referrerPolicy?: React.HTMLAttributeReferrerPolicy, loading?: "lazy" | "eager" }) => {
+const LazyImage = ({ 
+  src, 
+  alt, 
+  className, 
+  referrerPolicy = "no-referrer", 
+  loading = "lazy",
+  userId
+}: { 
+  src?: string | null, 
+  alt: string, 
+  className?: string, 
+  referrerPolicy?: React.HTMLAttributeReferrerPolicy, 
+  loading?: "lazy" | "eager",
+  userId?: string | number
+}) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(false);
+
+  // Generate a consistent placeholder based on userId or a default seed
+  const placeholderUrl = `https://picsum.photos/seed/${userId || 'default'}/600/800`;
+  const finalSrc = src || placeholderUrl;
 
   return (
     <div className={cn("relative overflow-hidden w-full h-full", className)}>
@@ -108,13 +126,8 @@ const LazyImage = ({ src, alt, className, referrerPolicy, loading = "lazy" }: { 
           <Heart size={24} className="text-terracotta/20" />
         </div>
       )}
-      {error && (
-        <div className="absolute inset-0 bg-white/5 flex items-center justify-center">
-          <User size={24} className="text-anthracite/10" />
-        </div>
-      )}
       <img
-        src={src}
+        src={error ? placeholderUrl : finalSrc}
         alt={alt}
         className={cn(
           "w-full h-full object-cover transition-all duration-700",
@@ -798,7 +811,10 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
         socket.on('newNotification', (notif: any) => {
           setNotifications(prev => [notif, ...prev]);
         });
-        return () => socket.off('newNotification');
+        
+        return () => {
+          socket.off('newNotification');
+        };
       }
     }
   }, [user, socket]);
@@ -2375,11 +2391,10 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user
           >
             <div className="aspect-[3/4] relative overflow-hidden">
               <LazyImage 
-                src={p.photo_url || `https://picsum.photos/seed/${p.user_id}/600/800`} 
+                src={p.photo_url} 
+                userId={p.user_id}
                 className="transition-transform duration-1000 group-hover:scale-110" 
                 alt={p.first_name}
-                referrerPolicy="no-referrer"
-                loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-offwhite via-transparent to-transparent opacity-80" />
               
@@ -2525,14 +2540,18 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
         contents: prompt,
         config: {
           responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.STRING,
+            },
+          },
         }
       });
 
-      const text = response.text || "[]";
-      const cleanJson = text.replace(/```json|```/g, "").trim();
       let suggestions = [];
       try {
-        suggestions = JSON.parse(cleanJson);
+        suggestions = JSON.parse(response.text || "[]");
       } catch (e) {
         console.error("Failed to parse icebreakers JSON:", e);
       }
@@ -2618,19 +2637,23 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
     }
   }, [socket, id]);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !id || !socket) return;
+  const sendMessage = (content: string) => {
+    if (!content.trim() || !id || !socket) return;
 
     const msgData = {
       senderId: user.id,
       receiverId: parseInt(id),
-      content: newMessage
+      content: content.trim()
     };
 
     socket.emit('sendMessage', msgData);
     setMessages(prev => [...prev, { ...msgData, sender_id: user.id, receiver_id: parseInt(id), created_at: new Date().toISOString() }]);
     setNewMessage('');
+  };
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage(newMessage);
   };
 
   if (loading) return <div className="p-12 text-center">Chargement des conversations...</div>;
@@ -2655,7 +2678,12 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
                   id === conv.user_id.toString() && "bg-beige/20"
                 )}
               >
-                <img src={conv.photo_url || `https://picsum.photos/seed/${conv.user_id}/100/100`} className="w-12 h-12 rounded-full object-cover" alt="" />
+                <LazyImage 
+                  src={conv.photo_url} 
+                  userId={conv.user_id}
+                  className="w-12 h-12 rounded-full object-cover" 
+                  alt="" 
+                />
                 <div className="flex-grow min-w-0">
                   <div className="font-bold truncate">{conv.first_name}</div>
                   <div className="text-sm text-anthracite/60 truncate">{conv.last_message}</div>
@@ -2683,7 +2711,12 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
                 </button>
                 {otherProfile && (
                   <>
-                    <img src={otherProfile.photo_url || `https://picsum.photos/seed/${otherProfile.user_id}/100/100`} className="w-10 h-10 rounded-full object-cover" alt="" />
+                    <LazyImage 
+                      src={otherProfile.photo_url} 
+                      userId={otherProfile.user_id}
+                      className="w-10 h-10 rounded-full object-cover" 
+                      alt="" 
+                    />
                     <div>
                       <div className="font-bold">{otherProfile.first_name}</div>
                       <div className="text-xs text-green-500">En ligne</div>
@@ -2777,7 +2810,7 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
                     <button
                       key={ib.id}
                       onClick={() => {
-                        setNewMessage(ib.content);
+                        sendMessage(ib.content);
                         fetch('/api/icebreakers/use', {
                           method: 'POST',
                           headers: getAuthHeaders(),
@@ -2909,6 +2942,7 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
             <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-lg relative group bg-beige">
               <LazyImage 
                 src={photos[activePhotoIndex].url} 
+                userId={profile.user_id}
                 alt={profile.first_name}
               />
               
@@ -2955,7 +2989,7 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
                     i === activePhotoIndex ? "border-terracotta scale-105" : "border-transparent opacity-60"
                   )}
                 >
-                  <LazyImage src={p.url} alt="" />
+                  <LazyImage src={p.url} userId={profile.user_id} alt="" />
                 </button>
               ))}
             </div>
@@ -3858,7 +3892,8 @@ const Favorites = ({ user }: { user: any }) => {
               </button>
               <div className="aspect-[3/4] bg-beige/50">
                 <LazyImage 
-                  src={p.photo_url || `https://picsum.photos/seed/${p.user_id}/400/600`} 
+                  src={p.photo_url} 
+                  userId={p.user_id}
                   alt={p.first_name}
                 />
               </div>
@@ -4320,12 +4355,17 @@ export default function App() {
       s.on('newNotification', (notif: any) => {
         addToast(notif.message, 'info');
       });
+      s.on('newMatch', (data: any) => {
+        addToast("Nouveau Match !", 'success', data.message);
+      });
       setSocket(s);
       
       // Subscribe to Push Notifications
       subscribeToPush();
 
       return () => {
+        s.off('newNotification');
+        s.off('newMatch');
         s.disconnect();
       };
     } else {

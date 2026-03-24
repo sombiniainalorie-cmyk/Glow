@@ -60,6 +60,8 @@ const sendPushNotification = (userId: number, payload: any) => {
 };
 
 // Database Initialization
+// WARNING: SQLite is not persistent on Vercel. 
+// For production, consider using a cloud database like Supabase, MongoDB, or PostgreSQL.
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -331,13 +333,19 @@ const authenticate = (req: any, res: any, next: any) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const user = db.prepare("SELECT id, email, role, status FROM users WHERE id = ?").get(decoded.id) as any;
+    
+    if (!user) return res.status(401).json({ error: "User not found" });
+    
+    req.user = user;
     
     // Check for expiration on every request for authenticated users
     const now = new Date();
-    const sub = db.prepare("SELECT end_date FROM subscriptions WHERE user_id = ?").get(req.user.id) as any;
+    const sub = db.prepare("SELECT end_date FROM subscriptions WHERE user_id = ?").get(user.id) as any;
     if (sub && now > new Date(sub.end_date)) {
-      db.prepare("UPDATE users SET status = 'expired' WHERE id = ?").run(req.user.id);
+      db.prepare("UPDATE users SET status = 'expired' WHERE id = ?").run(user.id);
+      req.user.status = 'expired';
     }
     
     next();
@@ -348,13 +356,9 @@ const authenticate = (req: any, res: any, next: any) => {
 
 // Middleware to restrict access to core features
 const requireActive = (req: any, res: any, next: any) => {
-  const user = db.prepare("SELECT status, role, email_verified FROM users WHERE id = ?").get(req.user.id) as any;
-  if (user.role === 'admin') return next(); // Admins are always active
-  if (!user.email_verified) {
-    return res.status(403).json({ error: "Email verification required", emailVerified: false });
-  }
-  if (user.status !== 'active') {
-    return res.status(403).json({ error: "Subscription required or expired", status: user.status });
+  if (req.user.role === 'admin') return next();
+  if (req.user.status !== 'active') {
+    return res.status(403).json({ error: "Account not active" });
   }
   next();
 };
@@ -368,8 +372,8 @@ app.post("/api/auth/register", async (req, res) => {
   try {
     const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as any;
     const role = (userCount.count === 0 || email === OWNER_EMAIL) ? 'admin' : 'user';
-    const status = role === 'admin' ? 'active' : 'inactive';
-    const emailVerified = 1; // Always verified
+    const status = 'inactive';
+    const emailVerified = 0;
     
     const result = db.prepare("INSERT INTO users (email, password, role, status, email_verified, verification_code) VALUES (?, ?, ?, ?, ?, ?)").run(email, hashedPassword, role, status, emailVerified, verificationCode);
     
@@ -1071,6 +1075,20 @@ app.post("/api/likes", authenticate, (req: any, res) => {
         io.to(`user-${req.user.id}`).emit("newNotification", { message: msg1, created_at: new Date().toISOString() });
         io.to(`user-${targetId}`).emit("newNotification", { message: msg2, created_at: new Date().toISOString() });
 
+        // Emit specific match event for prominent UI
+        io.to(`user-${req.user.id}`).emit("newMatch", { 
+          message: msg1, 
+          matchId: targetId, 
+          matchName: targetProfile.first_name,
+          matchPhoto: targetProfile.photo_url
+        });
+        io.to(`user-${targetId}`).emit("newMatch", { 
+          message: msg2, 
+          matchId: req.user.id, 
+          matchName: myProfile.first_name,
+          matchPhoto: myProfile.photo_url
+        });
+
         // Send Push Notifications
         sendPushNotification(req.user.id, {
           title: "Nouveau Match !",
@@ -1316,6 +1334,10 @@ app.use((err: any, req: any, res: any, next: any) => {
   res.status(500).json({ error: "Internal Server Error", message: err.message });
 });
 
-httpServer.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+export { app };
+
+if (process.env.NODE_ENV !== "test" && process.env.VERCEL !== "1") {
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
