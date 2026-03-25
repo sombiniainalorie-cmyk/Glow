@@ -608,7 +608,8 @@ app.get("/api/me", authenticate, (req: any, res) => {
   const user = db.prepare("SELECT id, email, role, status, is_hidden, show_age, show_city, show_online_status, show_read_receipts FROM users WHERE id = ?").get(userId);
   const profile = db.prepare("SELECT * FROM profiles WHERE user_id = ?").get(userId);
   const prefs = db.prepare("SELECT * FROM preferences WHERE user_id = ?").get(userId);
-  res.json({ user, profile, prefs });
+  const subscription = db.prepare("SELECT end_date FROM subscriptions WHERE user_id = ?").get(userId);
+  res.json({ user, profile, prefs, subscription });
 });
 
 app.post("/api/privacy/settings", authenticate, (req: any, res) => {
@@ -638,7 +639,12 @@ app.get("/api/profile/:id", authenticate, (req: any, res) => {
   const targetUser = db.prepare("SELECT show_age, show_city, show_online_status FROM users WHERE id = ?").get(targetId) as any;
   if (!targetUser) return res.status(404).json({ error: "User not found" });
 
-  const profile = db.prepare("SELECT * FROM profiles WHERE user_id = ?").get(targetId) as any;
+  const profile = db.prepare(`
+    SELECT p.*, 
+           (SELECT 1 FROM favorites WHERE user_id = ? AND target_id = p.user_id) as is_favorite
+    FROM profiles p 
+    WHERE p.user_id = ?
+  `).get(currentUserId, targetId) as any;
   if (!profile) return res.status(404).json({ error: "Profile not found" });
   
   // Apply privacy settings
@@ -1213,9 +1219,23 @@ app.get("/api/messages/:otherId", authenticate, requireActive, (req: any, res) =
 });
 
 // Socket.io for Real-time chat
+const onlineUsers = new Map<number, Set<string>>(); // userId -> Set of socketIds
+
 io.on("connection", (socket) => {
+  let currentUserId: number | null = null;
+
   socket.on("join", (userId) => {
+    currentUserId = userId;
     socket.join(`user-${userId}`);
+    
+    if (!onlineUsers.has(userId)) {
+      onlineUsers.set(userId, new Set());
+      io.emit("userOnline", userId);
+    }
+    onlineUsers.get(userId)!.add(socket.id);
+    
+    // Send current online users to the newly connected user
+    socket.emit("onlineUsers", Array.from(onlineUsers.keys()));
   });
 
   socket.on("sendMessage", (data) => {
@@ -1238,6 +1258,19 @@ io.on("connection", (socket) => {
       body: content.length > 50 ? content.substring(0, 47) + "..." : content,
       url: `/messages/${senderId}`
     });
+  });
+
+  socket.on("disconnect", () => {
+    if (currentUserId !== null) {
+      const socketIds = onlineUsers.get(currentUserId);
+      if (socketIds) {
+        socketIds.delete(socket.id);
+        if (socketIds.size === 0) {
+          onlineUsers.delete(currentUserId);
+          io.emit("userOffline", currentUserId);
+        }
+      }
+    }
   });
 });
 

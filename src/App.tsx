@@ -38,7 +38,9 @@ import {
   Globe,
   PenTool,
   Briefcase,
-  Flag
+  Flag,
+  MoreHorizontal,
+  Grid
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -79,11 +81,9 @@ class AppErrorBoundary extends (Component as any) {
             >
               Rafraîchir la page
             </button>
-            {process.env.NODE_ENV === 'development' && (
-              <pre className="text-left text-[10px] bg-black/5 p-4 rounded-lg overflow-auto max-h-40">
-                {this.state.error?.toString()}
-              </pre>
-            )}
+            <pre className="text-left text-[8px] bg-black/5 p-2 rounded-lg overflow-auto max-h-20 opacity-50">
+              {this.state.error?.toString()}
+            </pre>
           </div>
         </div>
       );
@@ -116,28 +116,29 @@ const LazyImage = ({
   const [error, setError] = useState(false);
 
   // Generate a consistent placeholder based on userId or a default seed
-  const placeholderUrl = `https://picsum.photos/seed/${userId || 'default'}/600/800`;
+  const placeholderUrl = `https://images.unsplash.com/photo-1511367461989-f85a21fda167?q=80&w=1000&auto=format&fit=crop`;
   const finalSrc = src || placeholderUrl;
 
   return (
-    <div className={cn("relative overflow-hidden w-full h-full", className)}>
+    <div className={cn("relative overflow-hidden w-full h-full bg-beige/20", className)}>
       {!isLoaded && !error && (
-        <div className="absolute inset-0 bg-white/5 animate-pulse flex items-center justify-center">
-          <Heart size={24} className="text-terracotta/20" />
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-sm animate-pulse flex items-center justify-center">
+          <Heart size={24} className="text-terracotta/10" />
         </div>
       )}
       <img
         src={error ? placeholderUrl : finalSrc}
         alt={alt}
         className={cn(
-          "w-full h-full object-cover transition-all duration-700",
-          isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-105"
+          "w-full h-full object-cover transition-all duration-1000 ease-out",
+          isLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-110 blur-xl"
         )}
         onLoad={() => setIsLoaded(true)}
         onError={() => setError(true)}
         loading={loading}
         referrerPolicy={referrerPolicy}
       />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
     </div>
   );
 };
@@ -2043,8 +2044,8 @@ const Subscription = ({ user, onLogout }: { user: any, onLogout?: () => void }) 
         <div className="space-y-8">
           <h2 className="text-4xl font-serif">Abonnement Premium</h2>
           <div className="bg-beige p-8 rounded-2xl border border-white/5 shadow-2xl">
-            <div className="text-5xl font-bold text-terracotta mb-2">2 000 Ar <span className="text-lg font-normal text-anthracite/60">/ mois</span></div>
-            <p className="text-anthracite/70">Accès illimité aux profils compatibles, messagerie et découvertes quotidiennes.</p>
+            <div className="text-5xl font-bold text-terracotta mb-2">2 000 Ar <span className="text-lg font-normal text-anthracite/60">/ 30 jours</span></div>
+            <p className="text-anthracite/70">Accès illimité aux profils compatibles, messagerie et découvertes quotidiennes pendant 30 jours.</p>
             <p className="text-xs text-accent-light font-medium mt-2 italic">* Prévoir 150 Ar de frais de retrait (Total à envoyer : 2 150 Ar)</p>
           </div>
           
@@ -2093,7 +2094,7 @@ const Subscription = ({ user, onLogout }: { user: any, onLogout?: () => void }) 
   );
 };
 
-const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user: any, updateCache: (profiles: any[]) => void, discoverCache: any[] | null, setDiscoverCache: (p: any[]) => void }) => {
+const Discover = ({ user, updateCache, discoverCache, setDiscoverCache, onlineUsers }: { user: any, updateCache: (profiles: any[]) => void, discoverCache: any[] | null, setDiscoverCache: (p: any[]) => void, onlineUsers: Set<number> }) => {
   const { addToast } = useContext(ToastContext);
   const [profiles, setProfiles] = useState<any[]>(discoverCache || []);
   const [loading, setLoading] = useState(!discoverCache);
@@ -2166,9 +2167,9 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user
       const matchSearch = !searchQuery || 
         p.first_name.toLowerCase().includes(searchLower) || 
         p.last_name.toLowerCase().includes(searchLower) || 
-        p.city.toLowerCase().includes(searchLower);
+        (p.city && p.city.toLowerCase().includes(searchLower));
       
-      const matchCity = !filterCity || p.city.toLowerCase().includes(filterCity.toLowerCase());
+      const matchCity = !filterCity || (p.city && p.city.toLowerCase().includes(filterCity.toLowerCase()));
       const matchMinAge = !filterMinAge || p.age >= filterMinAge;
       const matchMaxAge = !filterMaxAge || p.age <= filterMaxAge;
       const matchReligion = !filterReligion || p.religion === filterReligion;
@@ -2418,7 +2419,12 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user
               </div>
 
               <div className="absolute bottom-8 left-8 right-8">
-                <h3 className="text-3xl font-serif text-white mb-1 drop-shadow-lg">{p.first_name}{p.age ? `, ${p.age}` : ''}</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-3xl font-serif text-white drop-shadow-lg">{p.first_name}{p.age ? `, ${p.age}` : ''}</h3>
+                  {onlineUsers.has(p.user_id) && (
+                    <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-lg animate-pulse" title="En ligne"></div>
+                  )}
+                </div>
                 <p className="text-white/60 text-sm font-medium tracking-wide uppercase">{p.city} • {p.occupation_status}</p>
               </div>
 
@@ -2483,7 +2489,7 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache }: { user
   );
 };
 
-const Chat = ({ user, socket }: { user: any, socket: any }) => {
+const Chat = ({ user, socket, onlineUsers }: { user: any, socket: any, onlineUsers: Set<number> }) => {
   const { addToast } = useContext(ToastContext);
   const { id } = useParams();
   const navigate = useNavigate();
@@ -2594,15 +2600,15 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
           ]);
 
           const msgs = await msgsRes.json();
-          const profile = await profileRes.json();
+          const profileData = await profileRes.json();
           const ibs = await ibsRes.json();
 
           setMessages(msgs);
-          setOtherProfile(profile);
+          setOtherProfile(profileData.user);
           setIcebreakers(ibs);
 
           // Only generate if no messages yet and no icebreakers
-          if (msgs.length === 0 && ibs.length === 0 && profile && myProfile) {
+          if (msgs.length === 0 && ibs.length === 0 && profileData.user && myProfile) {
             generateIcebreakers();
           }
         } catch (err) {
@@ -2678,12 +2684,17 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
                   id === conv.user_id.toString() && "bg-beige/20"
                 )}
               >
-                <LazyImage 
-                  src={conv.photo_url} 
-                  userId={conv.user_id}
-                  className="w-12 h-12 rounded-full object-cover" 
-                  alt="" 
-                />
+                <div className="relative">
+                  <LazyImage 
+                    src={conv.photo_url} 
+                    userId={conv.user_id}
+                    className="w-12 h-12 rounded-full object-cover" 
+                    alt="" 
+                  />
+                  {onlineUsers.has(conv.user_id) && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-beige shadow-sm"></div>
+                  )}
+                </div>
                 <div className="flex-grow min-w-0">
                   <div className="font-bold truncate">{conv.first_name}</div>
                   <div className="text-sm text-anthracite/60 truncate">{conv.last_message}</div>
@@ -2711,15 +2722,24 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
                 </button>
                 {otherProfile && (
                   <>
-                    <LazyImage 
-                      src={otherProfile.photo_url} 
-                      userId={otherProfile.user_id}
-                      className="w-10 h-10 rounded-full object-cover" 
-                      alt="" 
-                    />
+                    <div className="relative">
+                      <LazyImage 
+                        src={otherProfile.photo_url} 
+                        userId={otherProfile.user_id}
+                        className="w-10 h-10 rounded-full object-cover" 
+                        alt="" 
+                      />
+                      {onlineUsers.has(otherProfile.user_id) && (
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-beige shadow-sm"></div>
+                      )}
+                    </div>
                     <div>
                       <div className="font-bold">{otherProfile.first_name}</div>
-                      <div className="text-xs text-green-500">En ligne</div>
+                      {onlineUsers.has(otherProfile.user_id) ? (
+                        <div className="text-[10px] text-green-500 font-bold uppercase tracking-wider">En ligne</div>
+                      ) : (
+                        <div className="text-[10px] text-anthracite/30 font-bold uppercase tracking-wider">Hors ligne</div>
+                      )}
                     </div>
                   </>
                 )}
@@ -2846,7 +2866,7 @@ const Chat = ({ user, socket }: { user: any, socket: any }) => {
   );
 };
 
-const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> }) => {
+const UserProfile = ({ user, cache, onlineUsers }: { user: any, cache: Record<number, any>, onlineUsers: Set<number> }) => {
   const { addToast } = useContext(ToastContext);
   const { id } = useParams();
   const [profile, setProfile] = useState<any>(null);
@@ -2870,7 +2890,7 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
       fetch(`/api/profile/${id}`, { headers: getAuthHeaders() })
         .then(res => res.json())
         .then(data => {
-          if (!data.error) setProfile(data);
+          if (!data.error) setProfile(data.user);
         });
       return;
     }
@@ -2879,7 +2899,7 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
       .then(res => res.json())
       .then(data => {
         if (data.error) setError(data.error);
-        else setProfile(data);
+        else setProfile(data.user);
         setLoading(false);
       });
   }, [id, user]);
@@ -2906,13 +2926,13 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
   if (error || !profile) return <div className="p-12 text-center text-indigo-500">Profil introuvable.</div>;
 
   const toggleFavorite = async () => {
-    const method = profile.isFavorite ? 'DELETE' : 'POST';
+    const method = profile.is_favorite ? 'DELETE' : 'POST';
     const res = await fetch(`/api/favorites/${profile.user_id}`, {
       method,
       headers: getAuthHeaders()
     });
     if (res.ok) {
-      setProfile({ ...profile, isFavorite: !profile.isFavorite });
+      setProfile({ ...profile, is_favorite: !profile.is_favorite });
     }
   };
 
@@ -2935,156 +2955,194 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
     : [{ url: profile.photo_url || `https://picsum.photos/seed/${profile.user_id}/400/600` }];
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-1">
-          <div className="sticky top-24 space-y-6">
-            <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-lg relative group bg-beige">
+    <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      {/* Instagram-style Header */}
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-16 mb-16">
+        <div className="relative group">
+          <div className="w-32 h-32 md:w-44 md:h-44 rounded-full p-1 bg-gradient-to-tr from-terracotta via-indigo-500 to-terracotta animate-gradient-x shadow-2xl">
+            <div className="w-full h-full rounded-full border-4 border-offwhite overflow-hidden bg-beige">
               <LazyImage 
-                src={photos[activePhotoIndex].url} 
+                src={profile.photo_url} 
                 userId={profile.user_id}
                 alt={profile.first_name}
               />
-              
-              <div className="absolute top-4 right-4 bg-terracotta text-white px-4 py-2 rounded-full text-lg font-bold shadow-xl z-10">
-                {profile.compatibility}%
-              </div>
+            </div>
+          </div>
+          {onlineUsers.has(profile.user_id) && (
+            <div className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 border-4 border-offwhite rounded-full animate-pulse shadow-lg shadow-green-500/20" />
+          )}
+        </div>
 
-              {photos.length > 1 && (
-                <>
-                  <button 
-                    onClick={() => setActivePhotoIndex(prev => (prev > 0 ? prev - 1 : photos.length - 1))}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <button 
-                    onClick={() => setActivePhotoIndex(prev => (prev < photos.length - 1 ? prev + 1 : 0))}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {photos.map((_, i) => (
-                      <div 
-                        key={i} 
-                        className={cn(
-                          "w-1.5 h-1.5 rounded-full transition-all",
-                          i === activePhotoIndex ? "bg-white w-4" : "bg-white/40"
-                        )} 
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-            
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {photos.map((p: any, i: number) => (
-                <button 
-                  key={i} 
-                  onClick={() => setActivePhotoIndex(i)}
-                  className={cn(
-                    "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all",
-                    i === activePhotoIndex ? "border-terracotta scale-105" : "border-transparent opacity-60"
-                  )}
-                >
-                  <LazyImage src={p.url} userId={profile.user_id} alt="" />
-                </button>
-              ))}
-            </div>
-            
-            <div className="space-y-3">
-              <Link to={`/chat/${profile.user_id}`} className="btn-primary w-full flex items-center justify-center gap-2 py-4">
-                <MessageCircle size={20} />
-                Envoyer un message
+        <div className="flex-grow space-y-6 text-center md:text-left">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <h1 className="text-3xl font-serif text-anthracite">{profile.first_name}{profile.age ? `, ${profile.age}` : ''}</h1>
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              <Link to={`/chat/${profile.user_id}`} className="px-6 py-2 bg-indigo-500 text-white rounded-xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-500/20">
+                Message
               </Link>
               <button 
                 onClick={toggleFavorite}
                 className={cn(
-                  "w-full flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-sm font-medium",
-                  profile.isFavorite ? "bg-terracotta/10 border-terracotta/20 text-terracotta" : "bg-beige border-white/5 text-anthracite/40 hover:text-terracotta"
+                  "p-2 rounded-xl border transition-all",
+                  profile.is_favorite ? "bg-terracotta/10 border-terracotta/20 text-terracotta" : "bg-beige border-white/5 text-anthracite/40 hover:text-terracotta"
                 )}
               >
-                <Heart size={18} fill={profile.isFavorite ? "currentColor" : "none"} />
-                {profile.isFavorite ? "Dans vos favoris" : "Ajouter aux favoris"}
+                <Heart size={20} fill={profile.is_favorite ? "currentColor" : "none"} />
               </button>
-              <div className="pt-4 border-t border-black/5 space-y-2">
-                <button 
-                  onClick={() => setIsBlockModalOpen(true)} 
-                  className="w-full flex items-center justify-center gap-2 py-2 text-anthracite/40 hover:text-terracotta transition-colors text-xs font-medium"
-                >
-                  <ShieldAlert size={14} />
-                  Bloquer ce profil
+              <div className="relative group/menu">
+                <button className="p-2 rounded-xl bg-beige border border-white/5 text-anthracite/40 hover:text-anthracite transition-all">
+                  <MoreHorizontal size={20} />
                 </button>
-                <button 
-                  onClick={() => setIsReportOpen(true)} 
-                  className="w-full flex items-center justify-center gap-2 py-2 text-anthracite/40 hover:text-terracotta transition-colors text-xs font-medium"
-                >
-                  <Flag size={14} />
-                  Signaler ce profil
-                </button>
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-black/5 py-2 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-50">
+                  <button onClick={() => setIsBlockModalOpen(true)} className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2">
+                    <ShieldAlert size={16} /> Bloquer
+                  </button>
+                  <button onClick={() => setIsReportOpen(true)} className="w-full px-4 py-2 text-left text-sm text-anthracite/60 hover:bg-black/5 transition-colors flex items-center gap-2">
+                    <Flag size={16} /> Signaler
+                  </button>
+                </div>
               </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center md:justify-start gap-8 text-sm">
+            <div className="flex flex-col items-center md:items-start">
+              <span className="font-black text-anthracite">{profile.compatibility}%</span>
+              <span className="text-anthracite/40 uppercase tracking-widest text-[10px] font-bold">Affinité</span>
+            </div>
+            <div className="flex flex-col items-center md:items-start">
+              <span className="font-black text-anthracite">{profile.city}</span>
+              <span className="text-anthracite/40 uppercase tracking-widest text-[10px] font-bold">Ville</span>
+            </div>
+            <div className="flex flex-col items-center md:items-start">
+              <span className="font-black text-anthracite">{profile.occupation_status}</span>
+              <span className="text-anthracite/40 uppercase tracking-widest text-[10px] font-bold">Statut</span>
+            </div>
+          </div>
+
+          <div className="max-w-md">
+            <p className="text-anthracite/80 text-sm leading-relaxed italic font-serif">
+              "{profile.bio || "Pas encore de bio renseignée..."}"
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Tabs (Wall vs Info) */}
+      <div className="border-t border-black/5">
+        <div className="flex justify-center gap-12 -mt-px">
+          <button className="flex items-center gap-2 py-4 border-t-2 border-anthracite text-xs font-black uppercase tracking-widest text-anthracite">
+            <Grid size={14} />
+            Le Mur
+          </button>
+          <button className="flex items-center gap-2 py-4 border-t-2 border-transparent text-xs font-black uppercase tracking-widest text-anthracite/40 hover:text-anthracite transition-all">
+            <Info size={14} />
+            Détails
+          </button>
+        </div>
+      </div>
+
+      {/* Instagram-style Grid */}
+      <div className="grid grid-cols-3 gap-1 md:gap-8 mt-8">
+        {photos.map((p: any, i: number) => (
+          <div 
+            key={i} 
+            className="aspect-square rounded-lg md:rounded-2xl overflow-hidden bg-beige group relative cursor-pointer shadow-sm hover:shadow-xl transition-all duration-500"
+            onClick={() => setActivePhotoIndex(i)}
+          >
+            <LazyImage src={p.url} userId={profile.user_id} alt="" />
+            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
+              <div className="flex items-center gap-1">
+                <Heart size={20} fill="currentColor" />
+                <span className="font-bold">12</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MessageCircle size={20} fill="currentColor" />
+                <span className="font-bold">4</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Detailed Info Section */}
+      <div className="mt-16 space-y-12">
+        <div className="grid md:grid-cols-2 gap-12">
+          <div className="space-y-6">
+            <h3 className="text-xl font-serif flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-terracotta/10 flex items-center justify-center">
+                <User size={16} className="text-terracotta" />
+              </div>
+              Portrait Physique
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Taille", value: `${profile.height} cm` },
+                { label: "Physique", value: profile.physique },
+                { label: "Teint", value: profile.skin_color },
+                { label: "Cheveux", value: profile.hair_type },
+                { label: "Ethnie", value: profile.ethnicity },
+                { label: "Enfants", value: profile.has_children }
+              ].map((item, idx) => (
+                <div key={idx} className="bg-white p-4 rounded-2xl border border-black/5 shadow-sm">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-anthracite/30 block mb-1">{item.label}</span>
+                  <span className="text-sm font-medium text-anthracite">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <h3 className="text-xl font-serif flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                <Heart size={16} className="text-indigo-500" />
+              </div>
+              Personnalité & Valeurs
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Religion", value: profile.religion },
+                { label: "Jalousie", value: profile.jealous },
+                { label: "Personnalité", value: profile.personality },
+                { label: "Loisirs", value: profile.hobbies },
+                { label: "Talent", value: profile.talent },
+                { label: "Orientation", value: profile.orientation }
+              ].map((item, idx) => (
+                <div key={idx} className="bg-white p-4 rounded-2xl border border-black/5 shadow-sm">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-anthracite/30 block mb-1">{item.label}</span>
+                  <span className="text-sm font-medium text-anthracite">{item.value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        <ThemedModal 
-          isOpen={isBlockModalOpen}
-          onClose={() => setIsBlockModalOpen(false)}
-          onConfirm={handleBlock}
-          title="Bloquer ce profil ?"
-          message={`En bloquant ${profile.first_name}, vous ne pourrez plus échanger et vos profils respectifs deviendront invisibles l'un pour l'autre.`}
-          confirmText="Oui, bloquer"
-          cancelText="Annuler"
-          type="danger"
-        />
-        
-        <div className="md:col-span-2 space-y-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-4xl font-serif mb-2">{profile.first_name}{profile.age ? `, ${profile.age} ans` : ''}</h1>
-              <p className="text-xl text-anthracite/60">{profile.city} • {profile.occupation_status}</p>
+        {/* Questions Section */}
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-[2rem] p-8 md:p-12 text-white shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl" />
+          <div className="relative z-10 space-y-8">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <Sparkles size={24} />
+              </div>
+              <h3 className="text-2xl font-serif">Confidences</h3>
             </div>
-            <div className="text-right">
-              <div className="text-xs font-bold uppercase text-anthracite/40 mb-1">Affinité</div>
-              <div className="text-3xl font-bold text-terracotta">{profile.compatibility}%</div>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <p className="text-white/60 text-xs font-black uppercase tracking-widest">Si vous aviez 10 millions Ar...</p>
+                <p className="text-lg font-serif italic leading-relaxed">"{profile.fun_question}"</p>
+              </div>
+              <div className="space-y-3">
+                <p className="text-white/60 text-xs font-black uppercase tracking-widest">Le respect, c'est quoi pour vous ?</p>
+                <p className="text-lg font-serif italic leading-relaxed">"{profile.serious_question}"</p>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="bg-beige p-4 rounded-2xl border border-white/5">
-              <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Taille</span>
-              <span className="font-medium">{profile.height} cm</span>
-            </div>
-            <div className="bg-beige p-4 rounded-2xl border border-white/5">
-              <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Physique</span>
-              <span className="font-medium">{profile.physique}</span>
-            </div>
-            <div className="bg-beige p-4 rounded-2xl border border-white/5">
-              <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Teint</span>
-              <span className="font-medium">{profile.skin_color}</span>
-            </div>
-            <div className="bg-beige p-4 rounded-2xl border border-white/5">
-              <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Cheveux</span>
-              <span className="font-medium">{profile.hair_type}</span>
-            </div>
-            <div className="bg-beige p-4 rounded-2xl border border-white/5">
-              <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Religion</span>
-              <span className="font-medium">{profile.religion}</span>
-            </div>
-            <div className="bg-beige p-4 rounded-2xl border border-white/5">
-              <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Ethnie</span>
-              <span className="font-medium">{profile.ethnicity}</span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-serif flex items-center gap-2">
-                <Info size={20} className="text-terracotta" />
-                À propos
-              </h3>
+            <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
+              <p className="text-white/80 text-sm max-w-md text-center md:text-left">
+                Laissez-vous guider par l'IA pour trouver les mots justes et briser la glace avec élégance.
+              </p>
               <button 
                 onClick={async () => {
                   addToast("IA", "info", "Génération d'icebreakers personnalisés...");
@@ -3113,70 +3171,16 @@ const UserProfile = ({ user, cache }: { user: any, cache: Record<number, any> })
                     addToast("IA", "error", "Impossible de générer des icebreakers.");
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-terracotta text-white rounded-xl text-xs font-bold hover:bg-terracotta/90 transition-all shadow-lg shadow-terracotta/20"
+                className="flex items-center gap-3 px-8 py-4 bg-white text-indigo-600 rounded-2xl font-bold hover:bg-offwhite transition-all shadow-xl"
               >
-                <Sparkles size={14} />
-                Idées d'icebreakers
+                <Sparkles size={18} />
+                Générer des Icebreakers
               </button>
-            </div>
-            <div className="bg-beige p-6 rounded-2xl border border-white/5 space-y-6">
-              {profile.bio && (
-                <div>
-                  <span className="text-xs font-bold uppercase text-anthracite/40 block mb-2">Bio / Présentation</span>
-                  <p className="text-anthracite/80 whitespace-pre-wrap">{profile.bio}</p>
-                </div>
-              )}
-              <div>
-                <span className="text-xs font-bold uppercase text-anthracite/40 block mb-2">Loisirs & Centres d'intérêt</span>
-                <div className="flex flex-wrap gap-2">
-                  {(profile.hobbies || "").split(',').map((h: string, i: number) => (
-                    <span key={i} className="px-3 py-1 bg-beige/30 rounded-full text-sm">{h.trim()}</span>
-                  )) || <span className="text-anthracite/40 italic">Non renseigné</span>}
-                </div>
-              </div>
-              <div>
-                <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Talent particulier</span>
-                <p className="text-anthracite/80">{profile.talent || "Non renseigné"}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-8 pt-4 border-t border-black/5">
-                <div>
-                  <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Jaloux(se) ?</span>
-                  <p className="font-medium">{profile.jealous}</p>
-                </div>
-                <div>
-                  <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Personnalité</span>
-                  <p className="font-medium">{profile.personality}</p>
-                </div>
-                <div>
-                  <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Enfants</span>
-                  <p className="font-medium">{profile.has_children === 'Oui' ? 'A déjà des enfants' : 'Pas d\'enfants'}</p>
-                </div>
-                <div>
-                  <span className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Orientation</span>
-                  <p className="font-medium">{profile.orientation}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-2xl font-serif flex items-center gap-2">
-              <MessageCircle size={20} className="text-terracotta" />
-              Questions / Réponses
-            </h3>
-            <div className="grid gap-4">
-              <div className="bg-terracotta/5 p-6 rounded-2xl border border-terracotta/10">
-                <p className="font-bold text-terracotta mb-2">Si on gagne 10 millions Ar ensemble, on fait quoi ?</p>
-                <p className="italic text-lg">"{profile.fun_question || "Pas encore de réponse..."}"</p>
-              </div>
-              <div className="bg-anthracite/5 p-6 rounded-2xl border border-black/10">
-                <p className="font-bold mb-2">C'est quoi le respect pour toi ?</p>
-                <p className="italic text-lg">"{profile.serious_question || "Pas encore de réponse..."}"</p>
-              </div>
             </div>
           </div>
         </div>
       </div>
+
       <ReportModal 
         isOpen={isReportOpen} 
         onClose={() => setIsReportOpen(false)} 
@@ -3195,6 +3199,7 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
   const [editMode, setEditMode] = useState<'none' | 'profile' | 'preferences' | 'photos'>('none');
   const [profileData, setProfileData] = useState<any>(null);
   const [prefsData, setPrefsData] = useState<any>(null);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [photos, setPhotos] = useState<any[]>([]);
   const [saveLoading, setSaveLoading] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(false);
@@ -3252,8 +3257,9 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
       fetch('/api/me', { headers: getAuthHeaders() })
         .then(res => res.json())
         .then(data => {
-          setProfileData(data.profile);
-          setPrefsData(data.prefs);
+          if (data.profile) setProfileData(data.profile);
+          if (data.prefs) setPrefsData(data.prefs);
+          if (data.subscription) setSubscriptionData(data.subscription);
           if (data.user) {
             setPrivacySettings({
               show_age: data.user.show_age === 1,
@@ -3430,6 +3436,22 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 space-y-8">
+      {user.status === 'active' && subscriptionData && (
+        <div className="bg-green-50 border border-green-100 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <CheckCircle className="text-green-600" size={32} />
+            <div>
+              <h3 className="font-bold text-green-900">Abonnement Premium Actif</h3>
+              <p className="text-sm text-green-700">
+                Expire le {new Date(subscriptionData.end_date).toLocaleDateString('fr-FR')} 
+                ({Math.max(0, Math.ceil((new Date(subscriptionData.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} jours restants)
+              </p>
+            </div>
+          </div>
+          <Link to="/subscription" className="text-green-600 font-bold text-sm hover:underline">Détails</Link>
+        </div>
+      )}
+
       {user.status === 'expired' && (
         <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -4324,6 +4346,7 @@ export default function App() {
   const [profileCache, setProfileCache] = useState<Record<number, any>>({});
   const [discoverCache, setDiscoverCache] = useState<any[] | null>(null);
   const [socket, setSocket] = useState<any>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -4358,6 +4381,23 @@ export default function App() {
       s.on('newMatch', (data: any) => {
         addToast("Nouveau Match !", 'success', data.message);
       });
+      s.on('onlineUsers', (users: number[]) => {
+        setOnlineUsers(new Set(users));
+      });
+      s.on('userOnline', (userId: number) => {
+        setOnlineUsers(prev => {
+          const next = new Set(prev);
+          next.add(userId);
+          return next;
+        });
+      });
+      s.on('userOffline', (userId: number) => {
+        setOnlineUsers(prev => {
+          const next = new Set(prev);
+          next.delete(userId);
+          return next;
+        });
+      });
       setSocket(s);
       
       // Subscribe to Push Notifications
@@ -4366,10 +4406,14 @@ export default function App() {
       return () => {
         s.off('newNotification');
         s.off('newMatch');
+        s.off('onlineUsers');
+        s.off('userOnline');
+        s.off('userOffline');
         s.disconnect();
       };
     } else {
       setSocket(null);
+      setOnlineUsers(new Set());
     }
   }, [user]);
 
@@ -4429,12 +4473,12 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/register" element={user ? <Navigate to="/subscription" /> : <Register setUser={setUser} />} />
-            <Route path="/discover" element={<StatusGuard user={user} onLogout={logout}><Discover user={user} updateCache={updateProfileCache} discoverCache={discoverCache} setDiscoverCache={setDiscoverCache} /></StatusGuard>} />
+            <Route path="/discover" element={<StatusGuard user={user} onLogout={logout}><Discover user={user} updateCache={updateProfileCache} discoverCache={discoverCache} setDiscoverCache={setDiscoverCache} onlineUsers={onlineUsers} /></StatusGuard>} />
             <Route path="/favorites" element={<StatusGuard user={user} onLogout={logout}><Favorites user={user} /></StatusGuard>} />
-            <Route path="/chat" element={<StatusGuard user={user} onLogout={logout}><Chat user={user} socket={socket} /></StatusGuard>} />
-            <Route path="/chat/:id" element={<StatusGuard user={user} onLogout={logout}><Chat user={user} socket={socket} /></StatusGuard>} />
+            <Route path="/chat" element={<StatusGuard user={user} onLogout={logout}><Chat user={user} socket={socket} onlineUsers={onlineUsers} /></StatusGuard>} />
+            <Route path="/chat/:id" element={<StatusGuard user={user} onLogout={logout}><Chat user={user} socket={socket} onlineUsers={onlineUsers} /></StatusGuard>} />
             <Route path="/profile" element={user ? <MyProfile user={user} onLogout={logout} /> : <Navigate to="/login" />} />
-            <Route path="/profile/:id" element={<StatusGuard user={user} onLogout={logout}><UserProfile user={user} cache={profileCache} /></StatusGuard>} />
+            <Route path="/profile/:id" element={<StatusGuard user={user} onLogout={logout}><UserProfile user={user} cache={profileCache} onlineUsers={onlineUsers} /></StatusGuard>} />
             <Route path="/subscription" element={user ? <Subscription user={user} onLogout={logout} /> : <Navigate to="/login" />} />
             <Route path="/admin" element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />} />
             
