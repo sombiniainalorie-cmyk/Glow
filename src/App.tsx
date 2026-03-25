@@ -537,19 +537,13 @@ const ReportModal = ({ isOpen, onClose, targetId, targetName }: { isOpen: boolea
             <p className="text-sm text-anthracite/60 mb-6">Aidez-nous à garder <span translate="no">Affinity70</span> sûr et authentique.</p>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-anthracite/40 mb-1">Raison du signalement</label>
-                <select 
-                  className="w-full p-3 rounded-xl border border-black/10 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                >
-                  <option>Arnaque / Faux profil</option>
-                  <option>Comportement inapproprié</option>
-                  <option>Harcèlement</option>
-                  <option>Contenu offensant</option>
-                  <option>Autre</option>
-                </select>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase text-anthracite/40 mb-1 px-1">Raison du signalement</label>
+                <ChoiceGrid 
+                  options={["Arnaque / Faux profil", "Comportement inapproprié", "Harcèlement", "Contenu offensant", "Autre"]} 
+                  value={reason} 
+                  onChange={setReason} 
+                />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase text-anthracite/40 mb-1">Détails supplémentaires</label>
@@ -1373,6 +1367,45 @@ const ResetPassword = () => {
   );
 };
 
+const ChoiceGrid = ({ 
+  options, 
+  value, 
+  onChange, 
+  columns = 2,
+  dark = false
+}: { 
+  options: string[], 
+  value: string, 
+  onChange: (val: string) => void,
+  columns?: number,
+  dark?: boolean
+}) => {
+  return (
+    <div className={cn(
+      "grid gap-2",
+      columns === 2 ? "grid-cols-2" : columns === 3 ? "grid-cols-3" : "grid-cols-1"
+    )}>
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onChange(opt)}
+          className={cn(
+            "p-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 border text-center",
+            value === opt 
+              ? "bg-terracotta text-white border-terracotta shadow-lg shadow-terracotta/20 scale-[1.02]" 
+              : dark 
+                ? "bg-white/5 text-white/70 border-white/5 hover:border-terracotta/30 hover:bg-terracotta/5"
+                : "bg-white text-anthracite/70 border-black/5 hover:border-terracotta/30 hover:bg-terracotta/5"
+          )}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const Register = ({ setUser }: { setUser: (u: any) => void }) => {
   const { addToast } = useContext(ToastContext);
   const [step, setStep] = useState(0);
@@ -1595,34 +1628,25 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Nom</label>
                 <input placeholder="Ex: Rakoto" className="w-full p-3 rounded-xl border border-black/5" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Genre</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
-                  <option value="Femme">Femme</option>
-                  <option value="Homme">Homme</option>
-                </select>
+                <ChoiceGrid options={["Femme", "Homme"]} value={formData.gender} onChange={v => setFormData({...formData, gender: v})} />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Âge</label>
-                <input type="number" min="16" placeholder="Âge" className="w-full p-3 rounded-xl border border-black/5" value={formData.age} onChange={e => setFormData({...formData, age: parseInt(e.target.value)})} />
+                <input type="number" min="16" placeholder="Âge" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={formData.age} onChange={e => setFormData({...formData, age: parseInt(e.target.value)})} />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Taille (cm)</label>
-                <input type="number" placeholder="Ex: 165" className="w-full p-3 rounded-xl border border-black/5" value={formData.height} onChange={e => setFormData({...formData, height: parseInt(e.target.value)})} />
+                <input type="number" placeholder="Ex: 165" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={formData.height} onChange={e => setFormData({...formData, height: parseInt(e.target.value)})} />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Ville</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}>
-                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <ChoiceGrid options={CITIES} value={formData.city} onChange={v => setFormData({...formData, city: v})} columns={3} />
               </div>
-              <div className="col-span-full space-y-1">
+              <div className="col-span-full space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Orientation</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={formData.orientation} onChange={e => setFormData({...formData, orientation: e.target.value})}>
-                  <option value="Hétéro">Hétéro (Sexe opposé uniquement)</option>
-                  <option value="Homo">Homo (Même sexe uniquement)</option>
-                  <option value="Bi">Bi (Les deux)</option>
-                </select>
+                <ChoiceGrid options={["Hétéro", "Homo", "Bi"]} value={formData.orientation} onChange={v => setFormData({...formData, orientation: v})} columns={3} />
               </div>
             </div>
             <div className="flex gap-4 pt-4">
@@ -1643,44 +1667,28 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
                 <p className="text-sm text-anthracite/60">La culture et les valeurs comptent.</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
+            <div className="space-y-6">
+              <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Religion</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={formData.religion} onChange={e => setFormData({...formData, religion: e.target.value})}>
-                  <option>Protestant(e)</option>
-                  <option>Catholique</option>
-                  <option>Adventiste</option>
-                  <option>Musulman(e)</option>
-                  <option>Autre</option>
-                </select>
+                <ChoiceGrid options={["Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} value={formData.religion} onChange={v => setFormData({...formData, religion: v})} columns={3} />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Ethnie</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={formData.ethnicity} onChange={e => setFormData({...formData, ethnicity: e.target.value})}>
-                  {ETHNICITIES.map(e => <option key={e} value={e}>{e}</option>)}
-                </select>
+                <ChoiceGrid options={ETHNICITIES} value={formData.ethnicity} onChange={v => setFormData({...formData, ethnicity: v})} columns={3} />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Physique</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={formData.physique} onChange={e => setFormData({...formData, physique: e.target.value})}>
-                  <option>Svelte</option>
-                  <option>Moyenne</option>
-                  <option>Athlétique</option>
-                  <option>En formes</option>
-                  <option>Autre</option>
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Physique</label>
+                  <ChoiceGrid options={["Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} value={formData.physique} onChange={v => setFormData({...formData, physique: v})} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Couleur de peau</label>
+                  <ChoiceGrid options={SKIN_COLORS} value={formData.skinColor} onChange={v => setFormData({...formData, skinColor: v})} />
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Couleur de peau</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={formData.skinColor} onChange={e => setFormData({...formData, skinColor: e.target.value})}>
-                  {SKIN_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="space-y-1 col-span-full">
+              <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Type de cheveux</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={formData.hairType} onChange={e => setFormData({...formData, hairType: e.target.value})}>
-                  {HAIR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <ChoiceGrid options={HAIR_TYPES} value={formData.hairType} onChange={v => setFormData({...formData, hairType: v})} columns={3} />
               </div>
             </div>
             <div className="flex gap-4 pt-4">
@@ -1712,43 +1720,22 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
                 />
                 <p className="text-[10px] text-anthracite/40 px-1 italic">Idées : Vos passions cachées, votre destination de rêve, vos valeurs...</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Loisirs</label>
-                  <input placeholder="Ex: Randonnée, Cuisine" className="w-full p-3 rounded-xl border border-black/5" value={formData.hobbies} onChange={e => setFormData({...formData, hobbies: e.target.value})} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Talent</label>
-                  <input placeholder="Ex: Jouer de la guitare" className="w-full p-3 rounded-xl border border-black/5" value={formData.talent} onChange={e => setFormData({...formData, talent: e.target.value})} />
-                </div>
-                <div className="space-y-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Jaloux(se) ?</label>
-                  <select className="w-full p-3 rounded-xl border border-black/5" value={formData.jealous} onChange={e => setFormData({...formData, jealous: e.target.value})}>
-                    <option>Non</option>
-                    <option>Oui</option>
-                    <option>Un peu</option>
-                  </select>
+                  <ChoiceGrid options={["Non", "Oui", "Un peu"]} value={formData.jealous} onChange={v => setFormData({...formData, jealous: v})} columns={3} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Personnalité</label>
-                  <select className="w-full p-3 rounded-xl border border-black/5" value={formData.personality} onChange={e => setFormData({...formData, personality: e.target.value})}>
-                    <option>Introverti(e)</option>
-                    <option>Extraverti(e)</option>
-                  </select>
+                  <ChoiceGrid options={["Introverti(e)", "Extraverti(e)"]} value={formData.personality} onChange={v => setFormData({...formData, personality: v})} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Avec enfant ?</label>
-                  <select className="w-full p-3 rounded-xl border border-black/5" value={formData.hasChildren} onChange={e => setFormData({...formData, hasChildren: e.target.value})}>
-                    <option>Non</option>
-                    <option>Oui</option>
-                  </select>
+                  <ChoiceGrid options={["Non", "Oui"]} value={formData.hasChildren} onChange={v => setFormData({...formData, hasChildren: v})} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Situation</label>
-                  <select className="w-full p-3 rounded-xl border border-black/5" value={formData.occupationStatus} onChange={e => setFormData({...formData, occupationStatus: e.target.value})}>
-                    <option>Étudiant(e)</option>
-                    <option>Travaille déjà</option>
-                  </select>
+                  <ChoiceGrid options={["Étudiant(e)", "Travaille déjà"]} value={formData.occupationStatus} onChange={v => setFormData({...formData, occupationStatus: v})} />
                 </div>
               </div>
             </div>
@@ -1770,43 +1757,32 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
                 <p className="text-sm text-anthracite/60">Qui cherchez-vous à rencontrer ?</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Âge Min</label>
-                <input type="number" className="w-full p-3 rounded-xl border border-black/5" value={prefs.minAge} onChange={e => setPrefs({...prefs, minAge: parseInt(e.target.value)})} />
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Âge Min</label>
+                  <input type="number" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={prefs.minAge} onChange={e => setPrefs({...prefs, minAge: parseInt(e.target.value)})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Âge Max</label>
+                  <input type="number" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={prefs.maxAge} onChange={e => setPrefs({...prefs, maxAge: parseInt(e.target.value)})} />
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Âge Max</label>
-                <input type="number" className="w-full p-3 rounded-xl border border-black/5" value={prefs.maxAge} onChange={e => setPrefs({...prefs, maxAge: parseInt(e.target.value)})} />
-              </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Ville idéale</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.city} onChange={e => setPrefs({...prefs, city: e.target.value})}>
-                  <option>Indifférent</option>
-                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <ChoiceGrid options={["Indifférent", ...CITIES]} value={prefs.city} onChange={v => setPrefs({...prefs, city: v})} columns={3} />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Taille idéale (cm)</label>
-                <input type="number" placeholder="Ex: 170" className="w-full p-3 rounded-xl border border-black/5" value={prefs.height} onChange={e => setPrefs({...prefs, height: parseInt(e.target.value)})} />
+                <input type="number" placeholder="Ex: 170" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={prefs.height} onChange={e => setPrefs({...prefs, height: parseInt(e.target.value)})} />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Religion</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.religion} onChange={e => setPrefs({...prefs, religion: e.target.value})}>
-                  <option>Indifférent</option>
-                  <option>Protestant(e)</option>
-                  <option>Catholique</option>
-                  <option>Adventiste</option>
-                  <option>Musulman(e)</option>
-                  <option>Autre</option>
-                </select>
+                <ChoiceGrid options={["Indifférent", "Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} value={prefs.religion} onChange={v => setPrefs({...prefs, religion: v})} columns={3} />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Ethnie</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.ethnicity} onChange={e => setPrefs({...prefs, ethnicity: e.target.value})}>
-                  <option>Indifférent</option>
-                  {ETHNICITIES.map(e => <option key={e} value={e}>{e}</option>)}
-                </select>
+                <ChoiceGrid options={["Indifférent", ...ETHNICITIES]} value={prefs.ethnicity} onChange={v => setPrefs({...prefs, ethnicity: v})} columns={3} />
               </div>
             </div>
             <div className="flex gap-4 pt-4">
@@ -1827,68 +1803,42 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
                 <p className="text-sm text-anthracite/60">Affinez votre recherche.</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Physique</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.physique} onChange={e => setPrefs({...prefs, physique: e.target.value})}>
-                  <option>Indifférent</option>
-                  <option>Svelte</option>
-                  <option>Moyenne</option>
-                  <option>Athlétique</option>
-                  <option>En formes</option>
-                  <option>Autre</option>
-                </select>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Physique</label>
+                  <ChoiceGrid options={["Indifférent", "Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} value={prefs.physique} onChange={v => setPrefs({...prefs, physique: v})} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Couleur de peau</label>
+                  <ChoiceGrid options={["Indifférent", ...SKIN_COLORS]} value={prefs.skinColor} onChange={v => setPrefs({...prefs, skinColor: v})} />
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Couleur de peau</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.skinColor} onChange={e => setPrefs({...prefs, skinColor: e.target.value})}>
-                  <option>Indifférent</option>
-                  {SKIN_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Type de cheveux</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.hairType} onChange={e => setPrefs({...prefs, hairType: e.target.value})}>
-                  <option>Indifférent</option>
-                  {HAIR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <ChoiceGrid options={["Indifférent", ...HAIR_TYPES]} value={prefs.hairType} onChange={v => setPrefs({...prefs, hairType: v})} columns={3} />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Avec enfant ?</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.hasChildren} onChange={e => setPrefs({...prefs, hasChildren: e.target.value})}>
-                  <option>Indifférent</option>
-                  <option>Non</option>
-                  <option>Oui</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Situation</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.occupationStatus} onChange={e => setPrefs({...prefs, occupationStatus: e.target.value})}>
-                  <option>Indifférent</option>
-                  <option>Étudiant(e)</option>
-                  <option>Travaille déjà</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Jaloux(se) ?</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.jealous} onChange={e => setPrefs({...prefs, jealous: e.target.value})}>
-                  <option>Indifférent</option>
-                  <option>Non</option>
-                  <option>Oui</option>
-                  <option>Un peu</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Personnalité</label>
-                <select className="w-full p-3 rounded-xl border border-black/5" value={prefs.personality} onChange={e => setPrefs({...prefs, personality: e.target.value})}>
-                  <option>Indifférent</option>
-                  <option>Introverti(e)</option>
-                  <option>Extraverti(e)</option>
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Avec enfant ?</label>
+                  <ChoiceGrid options={["Indifférent", "Non", "Oui"]} value={prefs.hasChildren} onChange={v => setPrefs({...prefs, hasChildren: v})} columns={3} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Situation</label>
+                  <ChoiceGrid options={["Indifférent", "Étudiant(e)", "Travaille déjà"]} value={prefs.occupationStatus} onChange={v => setPrefs({...prefs, occupationStatus: v})} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Jaloux(se) ?</label>
+                  <ChoiceGrid options={["Indifférent", "Non", "Oui", "Un peu"]} value={prefs.jealous} onChange={v => setPrefs({...prefs, jealous: v})} columns={2} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Personnalité</label>
+                  <ChoiceGrid options={["Indifférent", "Introverti(e)", "Extraverti(e)"]} value={prefs.personality} onChange={v => setPrefs({...prefs, personality: v})} />
+                </div>
               </div>
               <div className="col-span-full space-y-1">
                 <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Loisirs (Mots clés)</label>
-                <input placeholder="Ex: Voyage, Musique" className="w-full p-3 rounded-xl border border-black/5" value={prefs.hobbies} onChange={e => setPrefs({...prefs, hobbies: e.target.value})} />
+                <input placeholder="Ex: Voyage, Musique" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={prefs.hobbies} onChange={e => setPrefs({...prefs, hobbies: e.target.value})} />
               </div>
             </div>
             <div className="flex gap-4 pt-4">
@@ -2335,27 +2285,26 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache, onlineUs
                 </div>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-3 sm:col-span-2 lg:col-span-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-anthracite/30 px-1">Religion</label>
-                <select className="w-full p-3 rounded-xl border border-white/5 bg-white/5 text-sm focus:bg-white/10 transition-all outline-none appearance-none" value={filterReligion} onChange={e => setFilterReligion(e.target.value)}>
-                  <option value="" className="bg-offwhite">Toutes</option>
-                  <option className="bg-offwhite">Protestant(e)</option>
-                  <option className="bg-offwhite">Catholique</option>
-                  <option className="bg-offwhite">Adventiste</option>
-                  <option className="bg-offwhite">Musulman(e)</option>
-                  <option className="bg-offwhite">Autre</option>
-                </select>
+                <ChoiceGrid 
+                  options={["Toutes", "Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} 
+                  value={filterReligion || "Toutes"} 
+                  onChange={v => setFilterReligion(v === "Toutes" ? "" : v)} 
+                  columns={3}
+                  dark
+                />
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 sm:col-span-2 lg:col-span-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-anthracite/30 px-1">Physique</label>
-                <select className="w-full p-3 rounded-xl border border-white/5 bg-white/5 text-sm focus:bg-white/10 transition-all outline-none appearance-none" value={filterPhysique} onChange={e => setFilterPhysique(e.target.value)}>
-                  <option value="" className="bg-offwhite">Tous</option>
-                  <option className="bg-offwhite">Svelte</option>
-                  <option className="bg-offwhite">Moyenne</option>
-                  <option className="bg-offwhite">Athlétique</option>
-                  <option className="bg-offwhite">En formes</option>
-                </select>
+                <ChoiceGrid 
+                  options={["Tous", "Svelte", "Moyenne", "Athlétique", "En formes"]} 
+                  value={filterPhysique || "Tous"} 
+                  onChange={v => setFilterPhysique(v === "Tous" ? "" : v)} 
+                  columns={3}
+                  dark
+                />
               </div>
 
               <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
@@ -3624,11 +3573,9 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
                 <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Âge</label>
                 <input type="number" className="w-full p-3 rounded-xl border" value={profileData.age} onChange={e => setProfileData({...profileData, age: parseInt(e.target.value)})} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Ville</label>
-                <select className="w-full p-3 rounded-xl border" value={profileData.city} onChange={e => setProfileData({...profileData, city: e.target.value})}>
-                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <ChoiceGrid options={CITIES} value={profileData.city} onChange={v => setProfileData({...profileData, city: v})} columns={3} />
               </div>
               <div>
                 <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Loisirs / Hobbies</label>
@@ -3638,25 +3585,13 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
                 <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Talent</label>
                 <input className="w-full p-3 rounded-xl border" value={profileData.talent} onChange={e => setProfileData({...profileData, talent: e.target.value})} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Physique</label>
-                <select className="w-full p-3 rounded-xl border" value={profileData.physique} onChange={e => setProfileData({...profileData, physique: e.target.value})}>
-                  <option>Svelte</option>
-                  <option>Moyenne</option>
-                  <option>Athlétique</option>
-                  <option>En formes</option>
-                  <option>Autre</option>
-                </select>
+                <ChoiceGrid options={["Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} value={profileData.physique} onChange={v => setProfileData({...profileData, physique: v})} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Religion</label>
-                <select className="w-full p-3 rounded-xl border" value={profileData.religion} onChange={e => setProfileData({...profileData, religion: e.target.value})}>
-                  <option>Protestant(e)</option>
-                  <option>Catholique</option>
-                  <option>Adventiste</option>
-                  <option>Musulman(e)</option>
-                  <option>Autre</option>
-                </select>
+                <ChoiceGrid options={["Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} value={profileData.religion} onChange={v => setProfileData({...profileData, religion: v})} columns={3} />
               </div>
             </div>
             <button type="submit" disabled={saveLoading} className="btn-primary w-full py-4">
@@ -3665,43 +3600,28 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
           </form>
         ) : editMode === 'preferences' && prefsData ? (
           <form onSubmit={handlePrefsUpdate} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Âge Min</label>
-                <input type="number" className="w-full p-3 rounded-xl border" value={prefsData.min_age} onChange={e => setPrefsData({...prefsData, minAge: parseInt(e.target.value), min_age: parseInt(e.target.value)})} />
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Âge Min</label>
+                  <input type="number" className="w-full p-3 rounded-xl border" value={prefsData.min_age} onChange={e => setPrefsData({...prefsData, minAge: parseInt(e.target.value), min_age: parseInt(e.target.value)})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Âge Max</label>
+                  <input type="number" className="w-full p-3 rounded-xl border" value={prefsData.max_age} onChange={e => setPrefsData({...prefsData, maxAge: parseInt(e.target.value), max_age: parseInt(e.target.value)})} />
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Âge Max</label>
-                <input type="number" className="w-full p-3 rounded-xl border" value={prefsData.max_age} onChange={e => setPrefsData({...prefsData, maxAge: parseInt(e.target.value), max_age: parseInt(e.target.value)})} />
-              </div>
-              <div>
+              <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Ville idéale</label>
-                <select className="w-full p-3 rounded-xl border" value={prefsData.city} onChange={e => setPrefsData({...prefsData, city: e.target.value})}>
-                  <option>Indifférent</option>
-                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <ChoiceGrid options={["Indifférent", ...CITIES]} value={prefsData.city} onChange={v => setPrefsData({...prefsData, city: v})} columns={3} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Religion</label>
-                <select className="w-full p-3 rounded-xl border" value={prefsData.religion} onChange={e => setPrefsData({...prefsData, religion: e.target.value})}>
-                  <option>Indifférent</option>
-                  <option>Protestant(e)</option>
-                  <option>Catholique</option>
-                  <option>Adventiste</option>
-                  <option>Musulman(e)</option>
-                  <option>Autre</option>
-                </select>
+                <ChoiceGrid options={["Indifférent", "Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} value={prefsData.religion} onChange={v => setPrefsData({...prefsData, religion: v})} columns={3} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Physique</label>
-                <select className="w-full p-3 rounded-xl border" value={prefsData.physique} onChange={e => setPrefsData({...prefsData, physique: e.target.value})}>
-                  <option>Indifférent</option>
-                  <option>Svelte</option>
-                  <option>Moyenne</option>
-                  <option>Athlétique</option>
-                  <option>En formes</option>
-                  <option>Autre</option>
-                </select>
+                <ChoiceGrid options={["Indifférent", "Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} value={prefsData.physique} onChange={v => setPrefsData({...prefsData, physique: v})} />
               </div>
             </div>
             <button type="submit" disabled={saveLoading} className="btn-primary w-full py-4">

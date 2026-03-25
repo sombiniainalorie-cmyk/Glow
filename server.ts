@@ -30,9 +30,7 @@ if (!fs.existsSync(uploadsDir)) {
 const db = new Database("affinite70.db");
 const PORT = 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "affinite-70-secret-key";
-const OWNER_EMAIL = "sombiniainalorie@gmail.com";
-
-// Push Notifications Config
+// --- MIDDLEWARE ---
 const vapidKeys = {
   publicKey: process.env.VAPID_PUBLIC_KEY || "BNMmh9F5GasjynQfeGa6YMvVwJgBGEH0zE_HgjfXXCwV9SBsq86N1xcGNzhcOOb2RN5Ka4pUIccfeIfZuc9Z838",
   privateKey: process.env.VAPID_PRIVATE_KEY || "z9aNeU6B3MINrn9n5tK1eMd-8tKLeWgNozRRESTZxvk"
@@ -295,13 +293,7 @@ db.exec(`
   );
 `);
 
-// Ensure the main user is admin
-try {
-  db.prepare("UPDATE users SET role = 'admin' WHERE email = ?").run(OWNER_EMAIL);
-} catch (e) {
-  console.log("Could not set admin role (user might not exist yet)");
-}
-
+// --- MIDDLEWARE ---
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
@@ -371,7 +363,7 @@ app.post("/api/auth/register", async (req, res) => {
   
   try {
     const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as any;
-    const role = (userCount.count === 0 || email === OWNER_EMAIL) ? 'admin' : 'user';
+    const role = (userCount.count === 0) ? 'admin' : 'user';
     const status = 'inactive';
     const emailVerified = 0;
     
