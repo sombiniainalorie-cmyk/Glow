@@ -789,7 +789,6 @@ const DatingAssistant = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
 };
 
 const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, socket: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
@@ -825,129 +824,118 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
     <>
       <nav className="bg-offwhite sticky top-0 z-50 border-b border-white/5 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-28 items-center">
-            <div className="flex flex-col items-start">
+          <div className="flex justify-between h-20 items-center">
+            <div className="flex items-center gap-8">
               <Link to="/" className="flex items-center gap-2 group">
                 <div className="w-8 h-8 bg-terracotta rounded-lg flex items-center justify-center text-white shadow-lg shadow-terracotta/20 group-hover:rotate-12 transition-transform">
                   <Heart size={18} fill="currentColor" />
                 </div>
                 <span className="text-xl font-serif font-bold text-anthracite tracking-tight" translate="no">Affinity70</span>
               </Link>
-              <button 
-                onClick={() => setIsSideMenuOpen(true)}
-                className="mt-2 p-2 bg-white/5 text-anthracite/60 hover:text-terracotta hover:bg-white/10 rounded-lg transition-all flex items-center gap-2 group border border-white/5"
-                title="Menu"
-              >
-                <Menu size={18} />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Menu</span>
-              </button>
+
+              <div className="hidden lg:flex items-center gap-8">
+                {user ? (
+                  <>
+                    <Link to="/discover" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Découvrir</Link>
+                    <Link to="/favorites" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Favoris</Link>
+                    <Link to="/chat" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Messages</Link>
+                    <Link to="/profile" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Profil</Link>
+                  </>
+                ) : (
+                  <Link to="/about" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">À propos</Link>
+                )}
+              </div>
             </div>
             
-            <div className="hidden md:flex items-center gap-10">
+            <div className="flex items-center gap-4">
               {user ? (
                 <>
-                  <Link to="/discover" className="text-sm font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Découvrir</Link>
-                  <Link to="/favorites" className="text-sm font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Favoris</Link>
-                  <Link to="/chat" className="text-sm font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Messages</Link>
-                  <Link to="/profile" className="text-sm font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Profil</Link>
-                  
-                  <div className="relative">
-                    <button 
-                      onClick={() => {
-                        setShowNotifications(!showNotifications);
-                        if (!showNotifications) markAsRead();
-                      }}
-                      className="p-2 text-anthracite/40 hover:text-terracotta transition-colors relative"
-                    >
-                      <Bell size={20} />
-                      {unreadCount > 0 && (
-                        <span className="absolute top-1 right-1 w-4 h-4 bg-terracotta text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white">
-                          {unreadCount}
-                        </span>
-                      )}
+                  <div className="hidden md:flex items-center gap-6">
+                    <div className="relative">
+                      <button 
+                        onClick={() => {
+                          setShowNotifications(!showNotifications);
+                          if (!showNotifications) markAsRead();
+                        }}
+                        className="p-2 text-anthracite/40 hover:text-terracotta transition-colors relative"
+                      >
+                        <Bell size={20} />
+                        {unreadCount > 0 && (
+                          <span className="absolute top-1 right-1 w-4 h-4 bg-terracotta text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </button>
+                      
+                      <AnimatePresence>
+                        {showNotifications && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="absolute right-0 mt-2 w-80 bg-beige rounded-2xl shadow-xl border border-white/5 overflow-hidden"
+                          >
+                            <div className="p-4 border-b border-black/5 font-bold">Notifications</div>
+                            <div className="max-h-96 overflow-y-auto">
+                              {notifications.length === 0 ? (
+                                <div className="p-8 text-center text-anthracite/40 text-sm">Aucune notification</div>
+                              ) : (
+                                notifications.map(n => (
+                                  <div key={n.id} className={cn("p-4 text-sm border-b border-black/5 last:border-0", !n.is_read && "bg-beige/20")}>
+                                    {n.message}
+                                    <div className="text-[10px] text-anthracite/40 mt-1">
+                                      {new Date(n.created_at).toLocaleDateString()}
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {user.role === 'admin' && (
+                      <Link to="/admin" className="flex items-center gap-1 bg-terracotta/10 text-terracotta px-3 py-1 rounded-full font-bold hover:bg-terracotta hover:text-white transition-all text-xs">
+                        <ShieldCheck size={14} />
+                        Admin
+                      </Link>
+                    )}
+                    
+                    <button onClick={() => setIsHelpOpen(true)} className="p-2 text-anthracite/40 hover:text-terracotta transition-colors" title="Aide">
+                      <HelpCircle size={20} />
                     </button>
                     
-                    <AnimatePresence>
-                      {showNotifications && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="absolute right-0 mt-2 w-80 bg-beige rounded-2xl shadow-xl border border-white/5 overflow-hidden"
-                        >
-                          <div className="p-4 border-b border-black/5 font-bold">Notifications</div>
-                          <div className="max-h-96 overflow-y-auto">
-                            {notifications.length === 0 ? (
-                              <div className="p-8 text-center text-anthracite/40 text-sm">Aucune notification</div>
-                            ) : (
-                              notifications.map(n => (
-                                <div key={n.id} className={cn("p-4 text-sm border-b border-black/5 last:border-0", !n.is_read && "bg-beige/20")}>
-                                  {n.message}
-                                  <div className="text-[10px] text-anthracite/40 mt-1">
-                                    {new Date(n.created_at).toLocaleDateString()}
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <button 
+                      onClick={() => setIsSuggestionOpen(true)} 
+                      className="p-2 text-yellow-500 hover:text-yellow-400 transition-all relative group" 
+                      title="Suggérer une idée"
+                    >
+                      <Lightbulb size={24} className="relative z-10 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]" />
+                    </button>
                   </div>
 
-                  {user.role === 'admin' && (
-                    <Link to="/admin" className="flex items-center gap-1 bg-terracotta/10 text-terracotta px-3 py-1 rounded-full font-bold hover:bg-terracotta hover:text-white transition-all">
-                      <ShieldCheck size={16} />
-                      Admin
-                    </Link>
-                  )}
-                  <button onClick={() => setIsHelpOpen(true)} className="p-2 text-anthracite/40 hover:text-terracotta transition-colors" title="Aide">
-                    <HelpCircle size={20} />
-                  </button>
                   <button 
-                    onClick={() => setIsSuggestionOpen(true)} 
-                    className="p-3 text-yellow-500 hover:text-yellow-400 transition-all relative group" 
-                    title="Suggérer une idée"
+                    onClick={() => setIsSideMenuOpen(true)}
+                    className="p-2 bg-white/5 text-anthracite/60 hover:text-terracotta hover:bg-white/10 rounded-lg transition-all flex items-center gap-2 group border border-white/5"
                   >
-                    <div className="absolute inset-0 bg-yellow-400/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />
-                    <Lightbulb size={28} className="relative z-10 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]" />
-                  </button>
-                  <button onClick={onLogout} className="flex items-center gap-2 text-anthracite/70 hover:text-indigo-500 transition-colors">
-                    <LogOut size={18} />
-                    <span>Quitter</span>
+                    <Menu size={20} />
+                    <span className="hidden sm:inline text-[10px] font-black uppercase tracking-[0.2em]">Menu</span>
                   </button>
                 </>
               ) : (
-                <>
-                  <Link to="/login" className="text-anthracite/70 hover:text-terracotta transition-colors">Connexion</Link>
-                  <Link to="/register" className="btn-primary">S'inscrire</Link>
-                </>
+                <div className="flex items-center gap-4">
+                  <Link to="/login" className="text-sm font-bold text-anthracite/70 hover:text-terracotta transition-colors">Connexion</Link>
+                  <Link to="/register" className="btn-primary py-2 text-sm">S'inscrire</Link>
+                </div>
               )}
-            </div>
-
-            <div className="md:hidden flex items-center gap-4">
-              {user && (
-                <button 
-                  onClick={() => setIsOpen(!isOpen)} 
-                  className="p-2 text-anthracite/60 hover:text-terracotta transition-colors"
-                >
-                  <Menu size={24} />
-                </button>
-              )}
-              <button 
-                onClick={() => setIsSuggestionOpen(true)} 
-                className="p-3 text-yellow-500 relative group" 
-                title="Suggérer une idée"
-              >
-                <div className="absolute inset-0 bg-yellow-400/20 blur-lg rounded-full animate-pulse" />
-                <Lightbulb size={28} className="relative z-10 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]" />
-              </button>
             </div>
           </div>
         </div>
         
         <AnimatePresence>
           {isSideMenuOpen && (
+
             <>
               <motion.div 
                 initial={{ opacity: 0 }}
@@ -1013,6 +1001,11 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
                       <ShieldCheck size={20} /> Administration
                     </Link>
                   )}
+                  {user && (
+                    <button onClick={() => { onLogout(); setIsSideMenuOpen(false); }} className="text-lg font-bold text-indigo-500 hover:text-indigo-400 transition-colors flex items-center gap-3 border-t border-black/5 pt-6">
+                      <LogOut size={20} /> Quitter
+                    </button>
+                  )}
                 </div>
                 
                 <div className="mt-auto pt-8 border-t border-black/5 space-y-4">
@@ -1027,7 +1020,6 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
                     <h4 className="text-xs font-bold uppercase tracking-wider text-anthracite/40 mb-2">Contact</h4>
                     <p className="text-xs text-anthracite/60">Support : <a href="tel:+261389326331" className="hover:text-terracotta transition-colors">038 93 263 31</a></p>
                     <p className="text-xs text-anthracite/60">Email : <a href="mailto:Our@affinity70.mg" className="hover:text-terracotta transition-colors">Our@affinity70.mg</a></p>
-                    <p className="text-xs text-anthracite/60">Site : <span className="text-terracotta font-bold">Our@affinity70.mg</span></p>
                     <p className="text-xs text-anthracite/60 font-medium">Antananarivo, Madagascar</p>
                   </div>
                 </div>
@@ -1036,37 +1028,6 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="md:hidden bg-beige border-t border-white/5 p-4 flex flex-col gap-4"
-            >
-              {user ? (
-                <>
-                  <Link to="/discover" onClick={() => setIsOpen(false)}>Découvrir</Link>
-                  <Link to="/favorites" onClick={() => setIsOpen(false)}>Favoris</Link>
-                  <Link to="/chat" onClick={() => setIsOpen(false)}>Messages</Link>
-                  <Link to="/profile" onClick={() => setIsOpen(false)}>Profil</Link>
-                  {user.role === 'admin' && (
-                    <Link to="/admin" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-terracotta font-bold bg-terracotta/5 p-2 rounded-xl">
-                      <ShieldCheck size={18} />
-                      Administration
-                    </Link>
-                  )}
-                  <button onClick={() => { onLogout(); setIsOpen(false); }} className="text-left text-indigo-500">Quitter</button>
-                </>
-              ) : (
-                <>
-                  <Link to="/login" onClick={() => setIsOpen(false)}>Connexion</Link>
-                  <Link to="/register" onClick={() => setIsOpen(false)}>S'inscrire</Link>
-                </>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </nav>
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       <SuggestionModal isOpen={isSuggestionOpen} onClose={() => setIsSuggestionOpen(false)} />
@@ -4254,7 +4215,17 @@ const Admin = () => {
           )}
         </div>
       </div>
+
+      <ThemedModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type as any}
+      />
     </div>
+
   );
 };
 
