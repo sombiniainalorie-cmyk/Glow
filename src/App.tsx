@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, Component, ReactNode } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Heart, 
@@ -46,6 +46,8 @@ import { io } from 'socket.io-client';
 import { GoogleGenAI, Type } from "@google/genai";
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+
+const ADMIN_EMAIL = 'sombiniainalorie@gmail.com';
 
 // --- Components ---
 
@@ -340,6 +342,16 @@ const StaticPage = ({ title, content }: { title: string, content: React.ReactNod
   </motion.div>
 );
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 const StatusGuard = ({ user, onLogout, children }: { user: any, onLogout?: () => void, children: React.ReactNode }) => {
   if (!user) return <Navigate to="/login" />;
 
@@ -539,7 +551,8 @@ const ReportModal = ({ isOpen, onClose, targetId, targetName }: { isOpen: boolea
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="block text-xs font-bold uppercase text-anthracite/40 mb-1 px-1">Raison du signalement</label>
-                <ChoiceGrid 
+                <AestheticSelect 
+                  label="Raison du signalement" 
                   options={["Arnaque / Faux profil", "Comportement inapproprié", "Harcèlement", "Contenu offensant", "Autre"]} 
                   value={reason} 
                   onChange={setReason} 
@@ -721,61 +734,69 @@ const DatingAssistant = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
-            className="bg-beige w-full max-w-lg h-[80dvh] sm:h-[600px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-white/5"
+            className="bg-offwhite w-full max-w-lg h-[80dvh] sm:h-[600px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-terracotta/20"
           >
-            <div className="p-6 bg-terracotta text-beige flex justify-between items-center">
+            <div className="p-6 bg-beige border-b border-terracotta/10 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-xl">
-                  <Sparkles size={24} />
+                <div className="p-2 bg-terracotta/10 rounded-xl">
+                  <Sparkles size={24} className="text-terracotta" />
                 </div>
                 <div>
-                  <h2 className="font-serif text-xl font-bold">Assistant Affinity70</h2>
-                  <p className="text-xs text-beige/70">Propulsé par l'IA</p>
+                  <h2 className="font-serif text-xl font-bold text-white">Assistant Affinity70</h2>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-terracotta/60">Élégance & Nuance</p>
                 </div>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+              <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-white/40">
                 <X size={24} />
               </button>
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-offwhite/50">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 bg-offwhite">
               {messages.map((msg, i) => (
                 <div key={i} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
                     <div className={cn(
-                      "max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
+                      "max-w-[85%] p-5 rounded-3xl text-sm leading-relaxed shadow-xl transition-all",
                       msg.role === 'user' 
-                        ? "bg-terracotta text-beige rounded-tr-none" 
-                        : "bg-white text-beige rounded-tl-none border border-black/5"
+                        ? "bg-terracotta text-white rounded-tr-none shadow-terracotta/20" 
+                        : "bg-beige text-white/90 rounded-tl-none border border-terracotta/10 shadow-black/20"
                     )}>
-                    {msg.content}
+                    <div className="flex flex-col gap-1">
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-widest mb-1",
+                        msg.role === 'user' ? "text-white/60" : "text-terracotta/60"
+                      )}>
+                        {msg.role === 'user' ? 'Vous' : 'Assistant Affinity70'}
+                      </span>
+                      {msg.content}
+                    </div>
                   </div>
                 </div>
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-black/5 flex gap-1">
-                    <div className="w-1.5 h-1.5 bg-terracotta/40 rounded-full animate-bounce" />
-                    <div className="w-1.5 h-1.5 bg-terracotta/40 rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <div className="w-1.5 h-1.5 bg-terracotta/40 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  <div className="bg-beige p-5 rounded-3xl rounded-tl-none border border-terracotta/10 flex gap-1.5 shadow-xl">
+                    <div className="w-2 h-2 bg-terracotta rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-terracotta rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <div className="w-2 h-2 bg-terracotta rounded-full animate-bounce [animation-delay:0.4s]" />
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-4 bg-white border-t border-black/5">
-              <div className="flex gap-2">
+            <div className="p-6 bg-beige border-t border-terracotta/10">
+              <div className="flex gap-3">
                 <input 
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                   placeholder="Posez votre question..."
-                  className="flex-1 p-4 bg-offwhite rounded-xl outline-none focus:ring-2 focus:ring-terracotta/20 text-sm"
+                  className="flex-1 p-4 bg-offwhite rounded-2xl border border-terracotta/10 outline-none focus:border-terracotta/50 text-white text-sm transition-all"
                 />
                 <button 
                   onClick={handleSend}
                   disabled={loading || !input.trim()}
-                  className="p-4 bg-terracotta text-beige rounded-xl hover:bg-terracotta/90 transition-all disabled:opacity-50"
+                  className="p-4 bg-terracotta text-white rounded-2xl hover:bg-terracotta/90 transition-all disabled:opacity-50 shadow-lg shadow-terracotta/20"
                 >
                   <Send size={20} />
                 </button>
@@ -789,6 +810,7 @@ const DatingAssistant = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
 };
 
 const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, socket: any }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
@@ -822,120 +844,98 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
 
   return (
     <>
-      <nav className="bg-offwhite sticky top-0 z-50 border-b border-white/5 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
-            <div className="flex items-center gap-8">
-              <Link to="/" className="flex items-center gap-2 group">
-                <div className="w-8 h-8 bg-terracotta rounded-lg flex items-center justify-center text-white shadow-lg shadow-terracotta/20 group-hover:rotate-12 transition-transform">
-                  <Heart size={18} fill="currentColor" />
-                </div>
-                <span className="text-xl font-serif font-bold text-anthracite tracking-tight" translate="no">Affinity70</span>
-              </Link>
-
-              <div className="hidden lg:flex items-center gap-8">
-                {user ? (
-                  <>
-                    <Link to="/discover" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Découvrir</Link>
-                    <Link to="/favorites" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Favoris</Link>
-                    <Link to="/chat" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Messages</Link>
-                    <Link to="/profile" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">Profil</Link>
-                  </>
-                ) : (
-                  <Link to="/about" className="text-xs font-bold text-anthracite/60 hover:text-terracotta transition-colors uppercase tracking-widest">À propos</Link>
-                )}
+      <nav className="bg-offwhite sticky top-0 z-50 border-b border-terracotta/10 shadow-2xl backdrop-blur-md bg-offwhite/90">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="flex justify-between h-24 items-center">
+            {/* Left: Logo & Brand */}
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="text-terracotta group-hover:scale-110 transition-transform duration-500">
+                <Heart size={32} fill="currentColor" className="drop-shadow-[0_0_10px_rgba(197,160,89,0.4)]" />
               </div>
-            </div>
+              <span className="text-2xl font-serif font-bold text-white tracking-tight" translate="no">Affinity70</span>
+            </Link>
             
-            <div className="flex items-center gap-4">
-              {user ? (
-                <>
-                  <div className="hidden md:flex items-center gap-6">
-                    <div className="relative">
-                      <button 
-                        onClick={() => {
-                          setShowNotifications(!showNotifications);
-                          if (!showNotifications) markAsRead();
-                        }}
-                        className="p-2 text-anthracite/40 hover:text-terracotta transition-colors relative"
-                      >
-                        <Bell size={20} />
-                        {unreadCount > 0 && (
-                          <span className="absolute top-1 right-1 w-4 h-4 bg-terracotta text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white">
-                            {unreadCount}
-                          </span>
-                        )}
-                      </button>
-                      
-                      <AnimatePresence>
-                        {showNotifications && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
-                            className="absolute right-0 mt-2 w-80 bg-beige rounded-2xl shadow-xl border border-white/5 overflow-hidden"
-                          >
-                            <div className="p-4 border-b border-black/5 font-bold">Notifications</div>
-                            <div className="max-h-96 overflow-y-auto">
-                              {notifications.length === 0 ? (
-                                <div className="p-8 text-center text-anthracite/40 text-sm">Aucune notification</div>
-                              ) : (
-                                notifications.map(n => (
-                                  <div key={n.id} className={cn("p-4 text-sm border-b border-black/5 last:border-0", !n.is_read && "bg-beige/20")}>
-                                    {n.message}
-                                    <div className="text-[10px] text-anthracite/40 mt-1">
-                                      {new Date(n.created_at).toLocaleDateString()}
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    {user.role === 'admin' && (
-                      <Link to="/admin" className="flex items-center gap-1 bg-terracotta/10 text-terracotta px-3 py-1 rounded-full font-bold hover:bg-terracotta hover:text-white transition-all text-xs">
-                        <ShieldCheck size={14} />
-                        Admin
-                      </Link>
-                    )}
-                    
-                    <button onClick={() => setIsHelpOpen(true)} className="p-2 text-anthracite/40 hover:text-terracotta transition-colors" title="Aide">
-                      <HelpCircle size={20} />
-                    </button>
-                    
+            {/* Right: Actions */}
+            <div className="flex items-center gap-8">
+              {user && (
+                <div className="hidden md:flex items-center gap-6">
+                  {user.role === 'admin' && (
+                    <Link to="/admin" className="flex items-center gap-2 bg-terracotta/10 text-terracotta px-4 py-2 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-terracotta hover:text-white transition-all border border-terracotta/20">
+                      <ShieldCheck size={14} />
+                      Admin
+                    </Link>
+                  )}
+                  
+                  <div className="relative">
                     <button 
-                      onClick={() => setIsSuggestionOpen(true)} 
-                      className="p-2 text-yellow-500 hover:text-yellow-400 transition-all relative group" 
-                      title="Suggérer une idée"
+                      onClick={() => {
+                        setShowNotifications(!showNotifications);
+                        if (!showNotifications) markAsRead();
+                      }}
+                      className="p-2 text-white/40 hover:text-terracotta transition-colors relative"
                     >
-                      <Lightbulb size={24} className="relative z-10 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]" />
+                      <Bell size={22} />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 w-4 h-4 bg-terracotta text-white text-[10px] flex items-center justify-center rounded-full border-2 border-offwhite font-black">
+                          {unreadCount}
+                        </span>
+                      )}
                     </button>
+                    
+                    <AnimatePresence>
+                      {showNotifications && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute right-0 mt-4 w-80 bg-beige rounded-[2rem] shadow-2xl border border-terracotta/10 overflow-hidden z-50"
+                        >
+                          <div className="p-6 border-b border-white/5 font-serif text-lg text-white">Notifications</div>
+                          <div className="max-h-96 overflow-y-auto">
+                            {notifications.length === 0 ? (
+                              <div className="p-12 text-center text-white/20 text-sm italic">Aucune notification</div>
+                            ) : (
+                              notifications.map(n => (
+                                <div key={n.id} className={cn("p-6 text-sm border-b border-white/5 last:border-0 transition-colors", !n.is_read ? "bg-terracotta/5 text-white" : "text-white/60")}>
+                                  {n.message}
+                                  <div className="text-[10px] text-terracotta/60 font-black uppercase tracking-widest mt-2">
+                                    {new Date(n.created_at).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-
-                  <button 
-                    onClick={() => setIsSideMenuOpen(true)}
-                    className="p-2 bg-white/5 text-anthracite/60 hover:text-terracotta hover:bg-white/10 rounded-lg transition-all flex items-center gap-2 group border border-white/5"
-                  >
-                    <Menu size={20} />
-                    <span className="hidden sm:inline text-[10px] font-black uppercase tracking-[0.2em]">Menu</span>
-                  </button>
-                </>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <Link to="/login" className="text-sm font-bold text-anthracite/70 hover:text-terracotta transition-colors">Connexion</Link>
-                  <Link to="/register" className="btn-primary py-2 text-sm">S'inscrire</Link>
                 </div>
               )}
+
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setIsSuggestionOpen(true)} 
+                  className="p-2 text-terracotta hover:scale-110 transition-all relative group" 
+                  title="Suggérer une idée"
+                >
+                  <div className="absolute inset-0 bg-terracotta/20 blur-xl rounded-full group-hover:bg-terracotta/40 transition-colors" />
+                  <Lightbulb size={28} className="relative z-10 drop-shadow-[0_0_15px_rgba(197,160,89,0.8)]" />
+                </button>
+
+                <button 
+                  onClick={() => setIsSideMenuOpen(true)}
+                  className="p-2 text-terracotta hover:scale-110 transition-all"
+                  title="Menu"
+                >
+                  <Menu size={32} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
         
         <AnimatePresence>
           {isSideMenuOpen && (
-
             <>
               <motion.div 
                 initial={{ opacity: 0 }}
@@ -948,79 +948,79 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
-                className="fixed top-0 left-0 bottom-0 w-80 bg-offwhite z-[110] shadow-2xl p-8 flex flex-col border-r border-white/5"
+                className="fixed top-0 left-0 bottom-0 w-80 bg-offwhite z-[110] shadow-2xl p-10 flex flex-col border-r border-terracotta/10 backdrop-blur-xl"
               >
-                <div className="flex justify-between items-center mb-12">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-terracotta rounded-lg flex items-center justify-center text-white">
-                      <Heart size={18} fill="currentColor" />
+                <div className="flex justify-between items-center mb-16">
+                  <div className="flex items-center gap-3">
+                    <div className="text-terracotta">
+                      <Heart size={28} fill="currentColor" className="drop-shadow-[0_0_8px_rgba(197,160,89,0.4)]" />
                     </div>
-                    <span className="text-xl font-serif font-bold text-anthracite" translate="no">Affinity70</span>
+                    <span className="text-2xl font-serif font-bold text-white tracking-tight" translate="no">Affinity70</span>
                   </div>
-                  <button onClick={() => setIsSideMenuOpen(false)} className="p-2 hover:bg-black/5 rounded-full transition-colors">
-                    <X size={20} />
+                  <button onClick={() => setIsSideMenuOpen(false)} className="p-2 text-white/40 hover:text-terracotta transition-colors">
+                    <X size={24} />
                   </button>
                 </div>
                 
-                <div className="flex flex-col gap-6">
-                  <Link to="/" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
-                    <Heart size={20} className="text-terracotta" /> Accueil
+                <div className="flex flex-col gap-8">
+                  <Link to="/" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-medium text-white/60 hover:text-terracotta transition-all flex items-center gap-4 group">
+                    <Home size={20} className="group-hover:scale-110 transition-transform" /> 
+                    <span>Accueil</span>
                   </Link>
+                  
                   {user && (
                     <>
-                      <Link to="/discover" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
-                        <Search size={20} className="text-terracotta" /> Découvrir
+                      <Link to="/discover" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-medium text-white/60 hover:text-terracotta transition-all flex items-center gap-4 group">
+                        <Search size={20} className="group-hover:scale-110 transition-transform" /> 
+                        <span>Découvrir</span>
                       </Link>
-                      <Link to="/favorites" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
-                        <Heart size={20} className="text-terracotta" /> Favoris
+                      <Link to="/favorites" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-medium text-white/60 hover:text-terracotta transition-all flex items-center gap-4 group">
+                        <Heart size={20} className="group-hover:scale-110 transition-transform" /> 
+                        <span>Favoris</span>
                       </Link>
-                      <Link to="/chat" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
-                        <MessageCircle size={20} className="text-terracotta" /> Messages
+                      <Link to="/chat" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-medium text-white/60 hover:text-terracotta transition-all flex items-center gap-4 group">
+                        <MessageCircle size={20} className="group-hover:scale-110 transition-transform" /> 
+                        <span>Messages</span>
                       </Link>
-                      <Link to="/profile" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
-                        <User size={20} className="text-terracotta" /> Mon Profil
+                      <Link to="/profile" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-medium text-white/60 hover:text-terracotta transition-all flex items-center gap-4 group">
+                        <User size={20} className="group-hover:scale-110 transition-transform" /> 
+                        <span>Mon Profil</span>
                       </Link>
                     </>
                   )}
-                  <Link to="/about" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
-                    <Info size={20} className="text-terracotta" /> À propos
+
+                  <div className="h-px bg-white/5 my-4" />
+
+                  <Link to="/about" onClick={() => setIsSideMenuOpen(false)} className="text-sm font-medium text-white/40 hover:text-terracotta transition-all flex items-center gap-4">
+                    <Info size={18} /> À propos
                   </Link>
-                  {user?.status !== 'active' && (
-                    <Link to="/payment-terms" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
-                      <CreditCard size={20} className="text-terracotta" /> Abonnement
-                    </Link>
-                  )}
-                  <Link to="/privacy" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
-                    <Shield size={20} className="text-terracotta" /> Confidentialité
+                  <Link to="/privacy" onClick={() => setIsSideMenuOpen(false)} className="text-sm font-medium text-white/40 hover:text-terracotta transition-all flex items-center gap-4">
+                    <Shield size={18} /> Confidentialité
                   </Link>
-                  <Link to="/terms" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-anthracite/90 hover:text-terracotta transition-colors flex items-center gap-3">
-                    <ShieldAlert size={20} className="text-terracotta" /> Conditions
-                  </Link>
-                  {user?.role === 'admin' && (
-                    <Link to="/admin" onClick={() => setIsSideMenuOpen(false)} className="text-lg font-bold text-terracotta hover:text-accent-hover transition-colors flex items-center gap-3 border-t border-black/5 pt-6 mt-4">
-                      <ShieldCheck size={20} /> Administration
-                    </Link>
-                  )}
+                  
                   {user && (
-                    <button onClick={() => { onLogout(); setIsSideMenuOpen(false); }} className="text-lg font-bold text-indigo-500 hover:text-indigo-400 transition-colors flex items-center gap-3 border-t border-black/5 pt-6">
-                      <LogOut size={20} /> Quitter
+                    <button 
+                      onClick={() => { onLogout(); setIsSideMenuOpen(false); }} 
+                      className="text-lg font-bold text-red-400 hover:text-red-300 transition-all flex items-center gap-4 mt-8 pt-8 border-t border-white/5"
+                    >
+                      <LogOut size={20} /> 
+                      <span>Quitter</span>
                     </button>
                   )}
                 </div>
                 
-                <div className="mt-auto pt-8 border-t border-black/5 space-y-4">
-                  <div>
-                    <h3 className="text-xl font-serif font-bold text-anthracite mb-2" translate="no">Affinity70</h3>
-                    <p className="text-xs text-anthracite/60 leading-relaxed">
-                      La première plateforme de rencontre à Madagascar basée sur une compatibilité réelle de 70% et plus. Sécurité, élégance et authenticité.
+                <div className="mt-auto space-y-6">
+                  <div className="p-6 bg-terracotta/5 rounded-3xl border border-terracotta/10">
+                    <h3 className="text-lg font-serif font-bold text-terracotta mb-2" translate="no">Affinity70</h3>
+                    <p className="text-[10px] text-white/40 leading-relaxed uppercase tracking-widest font-black">
+                      Madagascar Premium • 70% Compatibilité
                     </p>
                   </div>
                   
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-anthracite/40 mb-2">Contact</h4>
-                    <p className="text-xs text-anthracite/60">Support : <a href="tel:+261389326331" className="hover:text-terracotta transition-colors">038 93 263 31</a></p>
-                    <p className="text-xs text-anthracite/60">Email : <a href="mailto:Our@affinity70.mg" className="hover:text-terracotta transition-colors">Our@affinity70.mg</a></p>
-                    <p className="text-xs text-anthracite/60 font-medium">Antananarivo, Madagascar</p>
+                  <div className="flex flex-col gap-2 px-2">
+                    <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-black">Contact Support</p>
+                    <a href="tel:+261389326331" className="text-xs text-white/40 hover:text-terracotta transition-colors">038 93 263 31</a>
+                    <a href="mailto:Our@affinity70.mg" className="text-xs text-white/40 hover:text-terracotta transition-colors">Our@affinity70.mg</a>
                   </div>
                 </div>
               </motion.div>
@@ -1028,6 +1028,37 @@ const Navbar = ({ user, onLogout, socket }: { user: any, onLogout: () => void, s
           )}
         </AnimatePresence>
 
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="md:hidden bg-beige border-t border-white/5 p-4 flex flex-col gap-4"
+            >
+              {user ? (
+                <>
+                  <Link to="/discover" onClick={() => setIsOpen(false)}>Découvrir</Link>
+                  <Link to="/favorites" onClick={() => setIsOpen(false)}>Favoris</Link>
+                  <Link to="/chat" onClick={() => setIsOpen(false)}>Messages</Link>
+                  <Link to="/profile" onClick={() => setIsOpen(false)}>Profil</Link>
+                  {user.role === 'admin' && (
+                    <Link to="/admin" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-terracotta font-bold bg-terracotta/5 p-2 rounded-xl">
+                      <ShieldCheck size={18} />
+                      Administration
+                    </Link>
+                  )}
+                  <button onClick={() => { onLogout(); setIsOpen(false); }} className="text-left text-indigo-500">Quitter</button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" onClick={() => setIsOpen(false)}>Connexion</Link>
+                  <Link to="/register" onClick={() => setIsOpen(false)}>S'inscrire</Link>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       <SuggestionModal isOpen={isSuggestionOpen} onClose={() => setIsSuggestionOpen(false)} />
@@ -1079,14 +1110,23 @@ const Hero = ({ user, onLogout }: { user: any, onLogout: () => void }) => (
       >
         {user ? (
           <>
-            <Link to="/profile" className="btn-primary text-xl px-12 py-5 flex items-center justify-center gap-2">
-              <User size={24} />
-              Voir mon profil
-            </Link>
-            <Link to="/discover" className="btn-secondary text-xl px-12 py-5 flex items-center justify-center gap-2">
-              <Search size={24} />
-              Découvrir
-            </Link>
+            {user.role === 'admin' ? (
+              <Link to="/admin" className="btn-primary text-xl px-12 py-5 flex items-center justify-center gap-2 shadow-xl shadow-terracotta/20">
+                <ShieldCheck size={24} />
+                Tableau de bord Admin
+              </Link>
+            ) : (
+              <>
+                <Link to="/profile" className="btn-primary text-xl px-12 py-5 flex items-center justify-center gap-2">
+                  <User size={24} />
+                  Voir mon profil
+                </Link>
+                <Link to="/discover" className="btn-secondary text-xl px-12 py-5 flex items-center justify-center gap-2">
+                  <Search size={24} />
+                  Découvrir
+                </Link>
+              </>
+            )}
             <button 
               onClick={onLogout}
               className="px-12 py-5 text-xl font-bold text-anthracite/40 hover:text-terracotta transition-colors flex items-center justify-center gap-2"
@@ -1124,9 +1164,10 @@ const Login = ({ setUser }: { setUser: (u: any) => void }) => {
     const data = await res.json();
     if (res.ok) {
       localStorage.setItem('token', data.token);
-      const userObj = { id: data.userId, role: data.role, status: data.status, email_verified: data.emailVerified };
+      const userRole = data.email === ADMIN_EMAIL ? 'admin' : data.role;
+      const userObj = { id: data.userId, role: userRole, status: data.status, email_verified: data.emailVerified, email: data.email };
       setUser(userObj);
-      if (data.role === 'admin') navigate('/admin');
+      if (userRole === 'admin') navigate('/admin');
       else if (data.status === 'active') navigate('/discover');
       else navigate('/subscription');
     } else {
@@ -1135,41 +1176,41 @@ const Login = ({ setUser }: { setUser: (u: any) => void }) => {
   };
 
   return (
-    <div className="min-h-[80dvh] flex items-center justify-center px-4">
+    <div className="min-h-[80dvh] flex items-center justify-center px-4 py-12">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="card w-full max-w-md"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card w-full max-w-md bg-beige/80 backdrop-blur-md"
       >
-        <h2 className="text-3xl font-serif text-center mb-8">Bon retour</h2>
-        <form onSubmit={handleLogin} className="space-y-6">
+        <h2 className="text-4xl font-serif text-center mb-10 text-anthracite">Bon retour</h2>
+        <form onSubmit={handleLogin} className="space-y-8">
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label className="block text-sm font-bold uppercase tracking-widest text-anthracite/40 mb-3 px-1">Email</label>
             <input 
               type="email" 
-              className="w-full p-3 rounded-xl border border-black/10 focus:ring-2 focus:ring-terracotta outline-none"
+              className="w-full p-4 rounded-2xl bg-[#E8F0FE] text-black border-none focus:ring-2 focus:ring-terracotta outline-none transition-all"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
           <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium">Mot de passe</label>
-              <Link to="/forgot-password" title="Mot de passe oublié ?" className="text-xs text-terracotta hover:underline">Oublié ?</Link>
+            <div className="flex justify-between items-center mb-3 px-1">
+              <label className="block text-sm font-bold uppercase tracking-widest text-anthracite/40">Mot de passe</label>
+              <Link to="/forgot-password" title="Mot de passe oublié ?" className="text-xs text-terracotta hover:underline font-bold">Oublié ?</Link>
             </div>
             <input 
               type="password" 
-              className="w-full p-3 rounded-xl border border-black/10 focus:ring-2 focus:ring-terracotta outline-none"
+              className="w-full p-4 rounded-2xl bg-offwhite/50 text-anthracite border border-white/5 focus:ring-2 focus:ring-terracotta outline-none transition-all"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-          <button type="submit" className="btn-primary w-full py-4 text-lg">Se connecter</button>
+          <button type="submit" className="btn-primary w-full py-5 text-xl shadow-2xl shadow-terracotta/20">Se connecter</button>
         </form>
-        <p className="mt-6 text-center text-sm text-anthracite/60">
-          Pas encore de compte ? <Link to="/register" className="text-terracotta font-bold">S'inscrire</Link>
+        <p className="mt-10 text-center text-sm text-anthracite/60">
+          Pas encore de compte ? <Link to="/register" className="text-terracotta font-bold hover:underline">S'inscrire</Link>
         </p>
       </motion.div>
     </div>
@@ -1328,44 +1369,120 @@ const ResetPassword = () => {
   );
 };
 
-const ChoiceGrid = ({ 
+const AestheticSelect = ({ 
+  label,
   options, 
   value, 
-  onChange, 
-  columns = 2,
-  dark = false
+  onChange,
+  icon: Icon,
 }: { 
+  label: string,
   options: string[], 
   value: string, 
   onChange: (val: string) => void,
-  columns?: number,
-  dark?: boolean
+  icon?: any,
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <div className={cn(
-      "grid gap-2",
-      columns === 2 ? "grid-cols-2" : columns === 3 ? "grid-cols-3" : "grid-cols-1"
-    )}>
-      {options.map((opt) => (
-        <button
-          key={opt}
-          type="button"
-          onClick={() => onChange(opt)}
-          className={cn(
-            "p-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 border text-center",
-            value === opt 
-              ? "bg-terracotta text-white border-terracotta shadow-lg shadow-terracotta/20 scale-[1.02]" 
-              : dark 
-                ? "bg-white/5 text-white/70 border-white/5 hover:border-terracotta/30 hover:bg-terracotta/5"
-                : "bg-white text-anthracite/70 border-black/5 hover:border-terracotta/30 hover:bg-terracotta/5"
-          )}
-        >
-          {opt}
-        </button>
-      ))}
+    <div className="relative">
+      <label className="text-[10px] font-black uppercase px-1 mb-2 block text-terracotta tracking-[0.2em]">{label}</label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full p-4 rounded-2xl border border-terracotta/20 bg-offwhite hover:border-terracotta/50 text-white flex items-center justify-between transition-all group shadow-[0_0_15px_rgba(197,160,89,0.05)]"
+      >
+        <div className="flex items-center gap-3">
+          {Icon && <Icon size={18} className="text-terracotta group-hover:scale-110 transition-transform" />}
+          <span className="text-sm font-medium tracking-wide">{value || "Choisir..."}</span>
+        </div>
+        <ChevronRight size={16} className={cn("text-terracotta/40 transition-transform", isOpen && "rotate-90")} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="absolute left-0 right-0 mt-2 rounded-2xl shadow-2xl border border-terracotta/20 bg-beige z-[110] overflow-hidden max-h-60 overflow-y-auto"
+            >
+              {options.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "w-full p-4 text-left text-sm transition-all hover:pl-6",
+                    value === opt 
+                      ? "text-terracotta font-black bg-terracotta/10" 
+                      : "text-white/70 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
+
+const AestheticNumberPicker = ({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  unit = ""
+}: {
+  label: string,
+  value: number,
+  onChange: (val: number) => void,
+  min: number,
+  max: number,
+  unit?: string
+}) => {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-end px-1">
+        <label className="text-[10px] font-black uppercase text-terracotta tracking-[0.3em]">{label}</label>
+        <div className="text-3xl font-serif text-white drop-shadow-[0_0_10px_rgba(197,160,89,0.3)]">
+          {value}<span className="text-xs ml-1 text-terracotta/60 font-sans font-bold uppercase tracking-widest">{unit}</span>
+        </div>
+      </div>
+      <div className="relative h-14 bg-offwhite rounded-2xl border border-terracotta/20 flex items-center px-4 group overflow-hidden shadow-[0_0_15px_rgba(197,160,89,0.05)]">
+        <input 
+          type="range" 
+          min={min} 
+          max={max} 
+          value={value} 
+          onChange={e => onChange(parseInt(e.target.value))}
+          className="w-full accent-terracotta cursor-pointer h-2 bg-white/5 rounded-full appearance-none"
+        />
+        <div className="absolute inset-0 pointer-events-none flex justify-between px-4 items-center opacity-10">
+          <span className="text-[10px] font-black text-white">{min}</span>
+          <span className="text-[10px] font-black text-white">{max}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 
 const Register = ({ setUser }: { setUser: (u: any) => void }) => {
   const { addToast } = useContext(ToastContext);
@@ -1502,309 +1619,437 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
         </div>
 
         {step === 0 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-8 py-6">
-            <div className="w-24 h-24 bg-terracotta/10 rounded-[2rem] flex items-center justify-center mx-auto text-terracotta shadow-2xl shadow-terracotta/20">
-              <Sparkles size={48} />
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-10 py-10">
+            <div className="w-28 h-28 bg-terracotta/10 rounded-[2.5rem] flex items-center justify-center mx-auto text-terracotta shadow-2xl shadow-terracotta/20 border border-terracotta/20">
+              <Sparkles size={56} />
             </div>
             <div>
-              <h2 className="text-4xl font-serif mb-4">Bienvenue sur Affinity70</h2>
-              <p className="text-anthracite/60 text-lg leading-relaxed max-w-md mx-auto">
+              <h2 className="text-5xl font-serif mb-6 text-white tracking-tight">Bienvenue sur Affinity70</h2>
+              <p className="text-white/60 text-xl leading-relaxed max-w-md mx-auto font-serif italic">
                 Ici, nous ne laissons rien au hasard. <br />
-                <span className="text-terracotta font-bold">L'essentiel commence à 70%.</span>
+                <span className="text-terracotta font-black uppercase tracking-widest text-sm not-italic mt-4 block">L'essentiel commence à 70%</span>
               </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-              <div className="bg-beige/50 p-6 rounded-3xl border border-white/5">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-4 shadow-sm">
-                  <ShieldCheck size={20} className="text-terracotta" />
+              <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 shadow-xl">
+                <div className="w-12 h-12 bg-terracotta/10 rounded-2xl flex items-center justify-center mb-6 border border-terracotta/20">
+                  <ShieldCheck size={24} className="text-terracotta" />
                 </div>
-                <h4 className="font-bold mb-1">Qualité & Sécurité</h4>
-                <p className="text-xs text-anthracite/60">Chaque profil est vérifié manuellement pour garantir une expérience authentique.</p>
+                <h4 className="font-serif text-xl text-white mb-2">Qualité & Sécurité</h4>
+                <p className="text-xs text-white/40 leading-relaxed uppercase tracking-widest font-black">Profils vérifiés manuellement pour une authenticité totale.</p>
               </div>
-              <div className="bg-beige/50 p-6 rounded-3xl border border-white/5">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-4 shadow-sm">
-                  <Target size={20} className="text-terracotta" />
+              <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 shadow-xl">
+                <div className="w-12 h-12 bg-terracotta/10 rounded-2xl flex items-center justify-center mb-6 border border-terracotta/20">
+                  <Target size={24} className="text-terracotta" />
                 </div>
-                <h4 className="font-bold mb-1">Algorithme d'Affinité</h4>
-                <p className="text-xs text-anthracite/60">Vous ne verrez que les profils avec lesquels vous avez au moins 70% de points communs.</p>
+                <h4 className="font-serif text-xl text-white mb-2">Algorithme d'Affinité</h4>
+                <p className="text-xs text-white/40 leading-relaxed uppercase tracking-widest font-black">Ne voyez que les profils qui résonnent avec votre âme.</p>
               </div>
             </div>
 
-            <div className="pt-4">
-              <button onClick={nextStep} className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3">
+            <div className="pt-8">
+              <button onClick={nextStep} className="btn-primary w-full py-6 text-sm font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 shadow-2xl shadow-terracotta/20">
                 Découvrir mon affinité
                 <ArrowRight size={20} />
               </button>
-              <p className="mt-4 text-xs text-anthracite/40">Déjà membre ? <Link to="/login" className="text-terracotta font-bold">Se connecter</Link></p>
+              <p className="mt-8 text-[10px] text-white/20 uppercase tracking-widest font-black">Déjà membre ? <Link to="/login" className="text-terracotta hover:underline">Se connecter</Link></p>
             </div>
           </motion.div>
         )}
 
         {step === 1 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta">
-                <User size={24} />
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta shadow-xl border border-terracotta/20">
+                <User size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-serif">Vos accès</h2>
-                <p className="text-sm text-anthracite/60">Commençons par le commencement.</p>
+                <h2 className="text-4xl font-serif text-white">Vos accès</h2>
+                <p className="text-sm text-white/40 uppercase tracking-widest font-black">Commençons par le commencement</p>
               </div>
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-anthracite/40 mb-2 px-1">Email professionnel ou personnel</label>
-                <input type="email" placeholder="votre@email.com" className="w-full p-4 rounded-2xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">Email professionnel ou personnel</label>
+                <input 
+                  type="email" 
+                  placeholder="votre@email.com" 
+                  className="w-full p-5 rounded-2xl border border-white/5 bg-white/5 text-white focus:border-terracotta/50 outline-none transition-all shadow-inner" 
+                  value={formData.email} 
+                  onChange={e => setFormData({...formData, email: e.target.value})} 
+                />
               </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-anthracite/40 mb-2 px-1">Mot de passe sécurisé</label>
-                <input type="password" placeholder="••••••••" className="w-full p-4 rounded-2xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">Mot de passe sécurisé</label>
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  className="w-full p-5 rounded-2xl border border-white/5 bg-white/5 text-white focus:border-terracotta/50 outline-none transition-all shadow-inner" 
+                  value={formData.password} 
+                  onChange={e => setFormData({...formData, password: e.target.value})} 
+                />
               </div>
             </div>
-            <div className="flex gap-4 pt-4">
-              <button onClick={prevStep} className="btn-secondary flex-1">Retour</button>
-              <button onClick={nextStep} className="btn-primary flex-1">Continuer</button>
+            <div className="flex gap-4 pt-8">
+              <button onClick={prevStep} className="btn-secondary flex-1 py-5">Retour</button>
+              <button onClick={nextStep} className="btn-primary flex-1 py-5">Continuer</button>
             </div>
           </motion.div>
         )}
 
         {step === 2 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta">
-                <Heart size={24} />
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta shadow-xl border border-terracotta/20">
+                <Heart size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-serif">Qui êtes-vous ?</h2>
-                <p className="text-sm text-anthracite/60">Parlez-nous un peu de vous.</p>
+                <h2 className="text-4xl font-serif text-white">Qui êtes-vous ?</h2>
+                <p className="text-sm text-white/40 uppercase tracking-widest font-black">Parlez-nous un peu de vous</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Prénom</label>
-                <input placeholder="Ex: Mialy" className="w-full p-3 rounded-xl border border-black/5" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Nom</label>
-                <input placeholder="Ex: Rakoto" className="w-full p-3 rounded-xl border border-black/5" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">Prénom</label>
+                <input 
+                  placeholder="Ex: Mialy" 
+                  className="w-full p-5 rounded-2xl border border-white/5 bg-white/5 text-white focus:border-terracotta/50 outline-none transition-all shadow-inner" 
+                  value={formData.firstName} 
+                  onChange={e => setFormData({...formData, firstName: e.target.value})} 
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Genre</label>
-                <ChoiceGrid options={["Femme", "Homme"]} value={formData.gender} onChange={v => setFormData({...formData, gender: v})} />
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">Nom</label>
+                <input 
+                  placeholder="Ex: Rakoto" 
+                  className="w-full p-5 rounded-2xl border border-white/5 bg-white/5 text-white focus:border-terracotta/50 outline-none transition-all shadow-inner" 
+                  value={formData.lastName} 
+                  onChange={e => setFormData({...formData, lastName: e.target.value})} 
+                />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Âge</label>
-                <input type="number" min="16" placeholder="Âge" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={formData.age} onChange={e => setFormData({...formData, age: parseInt(e.target.value)})} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Taille (cm)</label>
-                <input type="number" placeholder="Ex: 165" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={formData.height} onChange={e => setFormData({...formData, height: parseInt(e.target.value)})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Ville</label>
-                <ChoiceGrid options={CITIES} value={formData.city} onChange={v => setFormData({...formData, city: v})} columns={3} />
-              </div>
-              <div className="col-span-full space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Orientation</label>
-                <ChoiceGrid options={["Hétéro", "Homo", "Bi"]} value={formData.orientation} onChange={v => setFormData({...formData, orientation: v})} columns={3} />
+              
+              <AestheticSelect 
+                label="Genre" 
+                options={["Femme", "Homme"]} 
+                value={formData.gender} 
+                onChange={v => setFormData({...formData, gender: v})} 
+                icon={User}
+              />
+              
+              <AestheticNumberPicker 
+                label="Âge" 
+                value={formData.age} 
+                onChange={v => setFormData({...formData, age: v})} 
+                min={16} 
+                max={99} 
+                unit="ans"
+              />
+
+              <AestheticNumberPicker 
+                label="Taille" 
+                value={formData.height} 
+                onChange={v => setFormData({...formData, height: v})} 
+                min={140} 
+                max={220} 
+                unit="cm"
+              />
+
+              <AestheticSelect 
+                label="Ville" 
+                options={CITIES} 
+                value={formData.city} 
+                onChange={v => setFormData({...formData, city: v})} 
+                icon={Globe}
+              />
+
+              <div className="col-span-full">
+                <AestheticSelect 
+                  label="Orientation" 
+                  options={["Hétéro", "Homo", "Bi"]} 
+                  value={formData.orientation} 
+                  onChange={v => setFormData({...formData, orientation: v})} 
+                  icon={Target}
+                />
               </div>
             </div>
-            <div className="flex gap-4 pt-4">
-              <button onClick={prevStep} className="btn-secondary flex-1">Retour</button>
-              <button onClick={nextStep} className="btn-primary flex-1">Suivant</button>
+            <div className="flex gap-4 pt-8">
+              <button onClick={prevStep} className="btn-secondary flex-1 py-5">Retour</button>
+              <button onClick={nextStep} className="btn-primary flex-1 py-5">Suivant</button>
             </div>
           </motion.div>
         )}
 
         {step === 3 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta">
-                <Globe size={24} />
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta shadow-xl border border-terracotta/20">
+                <Globe size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-serif">Vos racines</h2>
-                <p className="text-sm text-anthracite/60">La culture et les valeurs comptent.</p>
+                <h2 className="text-4xl font-serif text-white">Vos racines</h2>
+                <p className="text-sm text-white/40 uppercase tracking-widest font-black">La culture et les valeurs comptent</p>
               </div>
             </div>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Religion</label>
-                <ChoiceGrid options={["Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} value={formData.religion} onChange={v => setFormData({...formData, religion: v})} columns={3} />
+            <div className="space-y-8">
+              <AestheticSelect 
+                label="Religion" 
+                options={["Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} 
+                value={formData.religion} 
+                onChange={v => setFormData({...formData, religion: v})} 
+              />
+              <AestheticSelect 
+                label="Ethnie" 
+                options={ETHNICITIES} 
+                value={formData.ethnicity} 
+                onChange={v => setFormData({...formData, ethnicity: v})} 
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <AestheticSelect 
+                  label="Physique" 
+                  options={["Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} 
+                  value={formData.physique} 
+                  onChange={v => setFormData({...formData, physique: v})} 
+                />
+                <AestheticSelect 
+                  label="Couleur de peau" 
+                  options={SKIN_COLORS} 
+                  value={formData.skinColor} 
+                  onChange={v => setFormData({...formData, skinColor: v})} 
+                />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Ethnie</label>
-                <ChoiceGrid options={ETHNICITIES} value={formData.ethnicity} onChange={v => setFormData({...formData, ethnicity: v})} columns={3} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Physique</label>
-                  <ChoiceGrid options={["Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} value={formData.physique} onChange={v => setFormData({...formData, physique: v})} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Couleur de peau</label>
-                  <ChoiceGrid options={SKIN_COLORS} value={formData.skinColor} onChange={v => setFormData({...formData, skinColor: v})} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Type de cheveux</label>
-                <ChoiceGrid options={HAIR_TYPES} value={formData.hairType} onChange={v => setFormData({...formData, hairType: v})} columns={3} />
-              </div>
+              <AestheticSelect 
+                label="Type de cheveux" 
+                options={HAIR_TYPES} 
+                value={formData.hairType} 
+                onChange={v => setFormData({...formData, hairType: v})} 
+              />
             </div>
-            <div className="flex gap-4 pt-4">
-              <button onClick={prevStep} className="btn-secondary flex-1">Retour</button>
-              <button onClick={nextStep} className="btn-primary flex-1">Suivant</button>
+            <div className="flex gap-4 pt-8">
+              <button onClick={prevStep} className="btn-secondary flex-1 py-5">Retour</button>
+              <button onClick={nextStep} className="btn-primary flex-1 py-5">Continuer</button>
             </div>
           </motion.div>
         )}
 
         {step === 4 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta">
-                <PenTool size={24} />
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta shadow-xl border border-terracotta/20">
+                <PenTool size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-serif">Votre univers</h2>
-                <p className="text-sm text-anthracite/60">Ce qui vous définit au quotidien.</p>
+                <h2 className="text-4xl font-serif text-white">Votre univers</h2>
+                <p className="text-sm text-white/40 uppercase tracking-widest font-black">Ce qui vous définit au quotidien</p>
               </div>
             </div>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Bio / Présentation</label>
+            <div className="space-y-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">Bio / Présentation</label>
                 <textarea 
                   placeholder="Partagez vos passions, votre voyage de rêve, ce qui vous fait rire..." 
-                  className="w-full p-4 rounded-2xl border border-black/5 min-h-[120px] focus:ring-2 focus:ring-terracotta outline-none transition-all" 
+                  className="w-full p-5 rounded-2xl border border-white/5 bg-white/5 text-white min-h-[120px] focus:border-terracotta/50 outline-none transition-all shadow-inner" 
                   value={formData.bio} 
                   onChange={e => setFormData({...formData, bio: e.target.value})} 
                 />
-                <p className="text-[10px] text-anthracite/40 px-1 italic">Idées : Vos passions cachées, votre destination de rêve, vos valeurs...</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Jaloux(se) ?</label>
-                  <ChoiceGrid options={["Non", "Oui", "Un peu"]} value={formData.jealous} onChange={v => setFormData({...formData, jealous: v})} columns={3} />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">Vos Loisirs</label>
+                  <input 
+                    placeholder="Ex: Voyage, Musique, Cuisine" 
+                    className="w-full p-5 rounded-2xl border border-white/5 bg-white/5 text-white focus:border-terracotta/50 outline-none transition-all shadow-inner" 
+                    value={formData.hobbies} 
+                    onChange={e => setFormData({...formData, hobbies: e.target.value})} 
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Personnalité</label>
-                  <ChoiceGrid options={["Introverti(e)", "Extraverti(e)"]} value={formData.personality} onChange={v => setFormData({...formData, personality: v})} />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">Votre Talent</label>
+                  <input 
+                    placeholder="Ex: Chant, Danse, Code" 
+                    className="w-full p-5 rounded-2xl border border-white/5 bg-white/5 text-white focus:border-terracotta/50 outline-none transition-all shadow-inner" 
+                    value={formData.talent} 
+                    onChange={e => setFormData({...formData, talent: e.target.value})} 
+                  />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Avec enfant ?</label>
-                  <ChoiceGrid options={["Non", "Oui"]} value={formData.hasChildren} onChange={v => setFormData({...formData, hasChildren: v})} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Situation</label>
-                  <ChoiceGrid options={["Étudiant(e)", "Travaille déjà"]} value={formData.occupationStatus} onChange={v => setFormData({...formData, occupationStatus: v})} />
-                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <AestheticSelect 
+                  label="Jaloux(se) ?" 
+                  options={["Non", "Oui", "Un peu"]} 
+                  value={formData.jealous} 
+                  onChange={v => setFormData({...formData, jealous: v})} 
+                />
+                <AestheticSelect 
+                  label="Personnalité" 
+                  options={["Introverti(e)", "Extraverti(e)"]} 
+                  value={formData.personality} 
+                  onChange={v => setFormData({...formData, personality: v})} 
+                />
+                <AestheticSelect 
+                  label="Avec enfant ?" 
+                  options={["Non", "Oui"]} 
+                  value={formData.hasChildren} 
+                  onChange={v => setFormData({...formData, hasChildren: v})} 
+                />
+                <AestheticSelect 
+                  label="Situation" 
+                  options={["Étudiant(e)", "Travaille déjà"]} 
+                  value={formData.occupationStatus} 
+                  onChange={v => setFormData({...formData, occupationStatus: v})} 
+                />
               </div>
             </div>
-            <div className="flex gap-4 pt-4">
-              <button onClick={prevStep} className="btn-secondary flex-1">Retour</button>
-              <button onClick={nextStep} className="btn-primary flex-1">Suivant</button>
+            <div className="flex gap-4 pt-8">
+              <button onClick={prevStep} className="btn-secondary flex-1 py-5">Retour</button>
+              <button onClick={nextStep} className="btn-primary flex-1 py-5">Continuer</button>
             </div>
           </motion.div>
         )}
 
         {step === 5 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta">
-                <Search size={24} />
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta shadow-xl border border-terracotta/20">
+                <Search size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-serif">Critères (1/2)</h2>
-                <p className="text-sm text-anthracite/60">Qui cherchez-vous à rencontrer ?</p>
+                <h2 className="text-4xl font-serif text-white">Critères (1/2)</h2>
+                <p className="text-sm text-white/40 uppercase tracking-widest font-black">Qui cherchez-vous à rencontrer ?</p>
               </div>
             </div>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Âge Min</label>
-                  <input type="number" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={prefs.minAge} onChange={e => setPrefs({...prefs, minAge: parseInt(e.target.value)})} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Âge Max</label>
-                  <input type="number" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={prefs.maxAge} onChange={e => setPrefs({...prefs, maxAge: parseInt(e.target.value)})} />
-                </div>
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <AestheticNumberPicker 
+                  label="Âge Min" 
+                  value={prefs.minAge} 
+                  onChange={v => setPrefs({...prefs, minAge: v})} 
+                  min={16} 
+                  max={99} 
+                  unit="ans"
+                />
+                <AestheticNumberPicker 
+                  label="Âge Max" 
+                  value={prefs.maxAge} 
+                  onChange={v => setPrefs({...prefs, maxAge: v})} 
+                  min={16} 
+                  max={99} 
+                  unit="ans"
+                />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Ville idéale</label>
-                <ChoiceGrid options={["Indifférent", ...CITIES]} value={prefs.city} onChange={v => setPrefs({...prefs, city: v})} columns={3} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Taille idéale (cm)</label>
-                <input type="number" placeholder="Ex: 170" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={prefs.height} onChange={e => setPrefs({...prefs, height: parseInt(e.target.value)})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Religion</label>
-                <ChoiceGrid options={["Indifférent", "Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} value={prefs.religion} onChange={v => setPrefs({...prefs, religion: v})} columns={3} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Ethnie</label>
-                <ChoiceGrid options={["Indifférent", ...ETHNICITIES]} value={prefs.ethnicity} onChange={v => setPrefs({...prefs, ethnicity: v})} columns={3} />
+
+              <AestheticSelect 
+                label="Ville idéale" 
+                options={["Indifférent", ...CITIES]} 
+                value={prefs.city} 
+                onChange={v => setPrefs({...prefs, city: v})} 
+                icon={Globe}
+              />
+
+              <AestheticNumberPicker 
+                label="Taille idéale" 
+                value={prefs.height} 
+                onChange={v => setPrefs({...prefs, height: v})} 
+                min={140} 
+                max={220} 
+                unit="cm"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <AestheticSelect 
+                  label="Religion" 
+                  options={["Indifférent", "Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} 
+                  value={prefs.religion} 
+                  onChange={v => setPrefs({...prefs, religion: v})} 
+                />
+                <AestheticSelect 
+                  label="Ethnie" 
+                  options={["Indifférent", ...ETHNICITIES]} 
+                  value={prefs.ethnicity} 
+                  onChange={v => setPrefs({...prefs, ethnicity: v})} 
+                />
               </div>
             </div>
-            <div className="flex gap-4 pt-4">
-              <button onClick={prevStep} className="btn-secondary flex-1">Retour</button>
-              <button onClick={nextStep} className="btn-primary flex-1">Suivant</button>
+            <div className="flex gap-4 pt-8">
+              <button onClick={prevStep} className="btn-secondary flex-1 py-5">Retour</button>
+              <button onClick={nextStep} className="btn-primary flex-1 py-5">Continuer</button>
             </div>
           </motion.div>
         )}
 
         {step === 6 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta">
-                <Target size={24} />
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta shadow-xl border border-terracotta/20">
+                <Target size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-serif">Critères (2/2)</h2>
-                <p className="text-sm text-anthracite/60">Affinez votre recherche.</p>
+                <h2 className="text-4xl font-serif text-white">Critères (2/2)</h2>
+                <p className="text-sm text-white/40 uppercase tracking-widest font-black">Affinez votre recherche</p>
               </div>
             </div>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Physique</label>
-                  <ChoiceGrid options={["Indifférent", "Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} value={prefs.physique} onChange={v => setPrefs({...prefs, physique: v})} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Couleur de peau</label>
-                  <ChoiceGrid options={["Indifférent", ...SKIN_COLORS]} value={prefs.skinColor} onChange={v => setPrefs({...prefs, skinColor: v})} />
-                </div>
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <AestheticSelect 
+                  label="Physique" 
+                  options={["Indifférent", "Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} 
+                  value={prefs.physique} 
+                  onChange={v => setPrefs({...prefs, physique: v})} 
+                />
+                <AestheticSelect 
+                  label="Couleur de peau" 
+                  options={["Indifférent", ...SKIN_COLORS]} 
+                  value={prefs.skinColor} 
+                  onChange={v => setPrefs({...prefs, skinColor: v})} 
+                />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Type de cheveux</label>
-                <ChoiceGrid options={["Indifférent", ...HAIR_TYPES]} value={prefs.hairType} onChange={v => setPrefs({...prefs, hairType: v})} columns={3} />
+              <AestheticSelect 
+                label="Type de cheveux" 
+                options={["Indifférent", ...HAIR_TYPES]} 
+                value={prefs.hairType} 
+                onChange={v => setPrefs({...prefs, hairType: v})} 
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <AestheticSelect 
+                  label="Avec enfant ?" 
+                  options={["Indifférent", "Non", "Oui"]} 
+                  value={prefs.hasChildren} 
+                  onChange={v => setPrefs({...prefs, hasChildren: v})} 
+                />
+                <AestheticSelect 
+                  label="Situation" 
+                  options={["Indifférent", "Étudiant(e)", "Travaille déjà"]} 
+                  value={prefs.occupationStatus} 
+                  onChange={v => setPrefs({...prefs, occupationStatus: v})} 
+                />
+                <AestheticSelect 
+                  label="Jaloux(se) ?" 
+                  options={["Indifférent", "Non", "Oui", "Un peu"]} 
+                  value={prefs.jealous} 
+                  onChange={v => setPrefs({...prefs, jealous: v})} 
+                />
+                <AestheticSelect 
+                  label="Personnalité" 
+                  options={["Indifférent", "Introverti(e)", "Extraverti(e)"]} 
+                  value={prefs.personality} 
+                  onChange={v => setPrefs({...prefs, personality: v})} 
+                />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Avec enfant ?</label>
-                  <ChoiceGrid options={["Indifférent", "Non", "Oui"]} value={prefs.hasChildren} onChange={v => setPrefs({...prefs, hasChildren: v})} columns={3} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Situation</label>
-                  <ChoiceGrid options={["Indifférent", "Étudiant(e)", "Travaille déjà"]} value={prefs.occupationStatus} onChange={v => setPrefs({...prefs, occupationStatus: v})} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Jaloux(se) ?</label>
-                  <ChoiceGrid options={["Indifférent", "Non", "Oui", "Un peu"]} value={prefs.jealous} onChange={v => setPrefs({...prefs, jealous: v})} columns={2} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Personnalité</label>
-                  <ChoiceGrid options={["Indifférent", "Introverti(e)", "Extraverti(e)"]} value={prefs.personality} onChange={v => setPrefs({...prefs, personality: v})} />
-                </div>
-              </div>
-              <div className="col-span-full space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Loisirs (Mots clés)</label>
-                <input placeholder="Ex: Voyage, Musique" className="w-full p-4 rounded-xl border border-black/5 focus:ring-2 focus:ring-terracotta outline-none" value={prefs.hobbies} onChange={e => setPrefs({...prefs, hobbies: e.target.value})} />
+              <div className="col-span-full space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">Loisirs (Mots clés)</label>
+                <input 
+                  placeholder="Ex: Voyage, Musique" 
+                  className="w-full p-5 rounded-2xl border border-white/5 bg-white/5 text-white focus:border-terracotta/50 outline-none transition-all shadow-inner" 
+                  value={prefs.hobbies} 
+                  onChange={e => setPrefs({...prefs, hobbies: e.target.value})} 
+                />
               </div>
             </div>
-            <div className="flex gap-4 pt-4">
-              <button onClick={prevStep} className="btn-secondary flex-1">Retour</button>
-              <button onClick={nextStep} className="btn-primary flex-1">Suivant</button>
+            <div className="flex gap-4 pt-8">
+              <button onClick={prevStep} className="btn-secondary flex-1 py-5">Retour</button>
+              <button onClick={nextStep} className="btn-primary flex-1 py-5">Continuer</button>
             </div>
           </motion.div>
         )}
@@ -1823,31 +2068,31 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
             
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Question FUN</label>
-                <textarea placeholder="Ex: Si on gagne 10 millions Ar ensemble, on fait quoi ?" className="w-full p-3 rounded-xl border border-black/5 h-20" value={formData.funQuestion} onChange={e => setFormData({...formData, funQuestion: e.target.value})} />
+                <label className="text-[10px] font-bold uppercase text-white/40 px-1">Question FUN</label>
+                <textarea placeholder="Ex: Si on gagne 10 millions Ar ensemble, on fait quoi ?" className="w-full p-4 rounded-2xl border border-terracotta/10 bg-white/5 text-white h-24 focus:border-terracotta/50 outline-none transition-all" value={formData.funQuestion} onChange={e => setFormData({...formData, funQuestion: e.target.value})} />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-anthracite/40 px-1">Question SÉRIEUSE</label>
-                <textarea placeholder="Ex: C'est quoi le respect pour toi ?" className="w-full p-3 rounded-xl border border-black/5 h-20" value={formData.seriousQuestion} onChange={e => setFormData({...formData, seriousQuestion: e.target.value})} />
+                <label className="text-[10px] font-bold uppercase text-white/40 px-1">Question SÉRIEUSE</label>
+                <textarea placeholder="Ex: C'est quoi le respect pour toi ?" className="w-full p-4 rounded-2xl border border-terracotta/10 bg-white/5 text-white h-24 focus:border-terracotta/50 outline-none transition-all" value={formData.seriousQuestion} onChange={e => setFormData({...formData, seriousQuestion: e.target.value})} />
               </div>
             </div>
 
-            <div className="pt-4 border-t border-black/5">
-              <h3 className="text-xl font-serif mb-2 text-center">Vos plus beaux sourires</h3>
-              <p className="text-terracotta text-xs font-medium italic mb-4 text-center">"Soyez belles, soyez beaux... Mais restez vrais. 😉"</p>
+            <div className="pt-8 border-t border-white/5">
+              <h3 className="text-2xl font-serif mb-2 text-center text-white">Vos plus beaux sourires</h3>
+              <p className="text-terracotta text-xs font-medium italic mb-6 text-center">"Soyez belles, soyez beaux... Mais restez vrais. 😉"</p>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 mb-6">
                 {photos.map((p, i) => (
-                  <div key={i} className="relative aspect-square rounded-2xl overflow-hidden shadow-lg group">
+                  <div key={i} className="relative aspect-square rounded-[2rem] overflow-hidden shadow-2xl group border border-white/5">
                     <img src={URL.createObjectURL(p)} className="w-full h-full object-cover" alt="Preview" />
                     <button 
                       onClick={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}
-                      className="absolute top-2 right-2 bg-indigo-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
                     >
-                      <X size={14} />
+                      <X size={16} />
                     </button>
                     {i === 0 && (
-                      <div className="absolute bottom-0 inset-x-0 bg-terracotta/80 text-white text-[8px] font-black uppercase py-1 text-center">
+                      <div className="absolute bottom-0 inset-x-0 bg-terracotta/90 text-white text-[10px] font-black uppercase py-2 text-center tracking-widest">
                         Principale
                       </div>
                     )}
@@ -1855,9 +2100,9 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
                 ))}
                 
                 {photos.length < 6 && (
-                  <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-black/10 rounded-2xl bg-black/5 hover:bg-black/10 transition-colors cursor-pointer">
-                    <Camera size={24} className="text-anthracite/20 mb-1" />
-                    <span className="text-[10px] text-anthracite/60 text-center px-2">Ajouter</span>
+                  <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-terracotta/20 rounded-[2rem] bg-white/5 hover:bg-white/10 hover:border-terracotta/40 transition-all cursor-pointer group">
+                    <Camera size={32} className="text-terracotta/40 group-hover:scale-110 transition-transform mb-2" />
+                    <span className="text-[10px] text-white/40 font-black uppercase tracking-widest">Ajouter</span>
                     <input 
                       type="file" 
                       className="hidden" 
@@ -1871,7 +2116,7 @@ const Register = ({ setUser }: { setUser: (u: any) => void }) => {
                   </label>
                 )}
               </div>
-              <p className="text-[10px] text-center text-anthracite/40">Vous pouvez ajouter jusqu'à 6 photos. La première sera votre photo principale.</p>
+              <p className="text-[10px] text-center text-white/20 uppercase tracking-widest font-black">Maximum 6 photos • Première photo principale</p>
             </div>
 
             <div className="flex gap-4 pt-4">
@@ -1929,19 +2174,19 @@ const Subscription = ({ user, onLogout }: { user: any, onLogout?: () => void }) 
   };
 
   if (success || user?.status === 'pending') return (
-    <div className="min-h-[70dvh] flex flex-col items-center justify-center text-center px-4">
-      {user?.status === 'pending' ? <Clock size={80} className="text-yellow-500 mb-6 animate-pulse" /> : <CheckCircle size={80} className="text-green-500 mb-6" />}
-      <h2 className="text-4xl font-serif mb-4">{user?.status === 'pending' ? "Validation en cours" : "Paiement envoyé !"}</h2>
-      <p className="text-anthracite/70 max-w-md">
+    <div className="min-h-[70dvh] flex flex-col items-center justify-center text-center px-4 bg-offwhite">
+      {user?.status === 'pending' ? <Clock size={80} className="text-terracotta mb-8 animate-pulse drop-shadow-[0_0_15px_rgba(197,160,89,0.4)]" /> : <CheckCircle size={80} className="text-green-500 mb-8 drop-shadow-[0_0_15px_rgba(34,197,94,0.4)]" />}
+      <h2 className="text-5xl font-serif mb-4 text-white">{user?.status === 'pending' ? "Validation en cours" : "Paiement envoyé !"}</h2>
+      <p className="text-white/60 max-w-md text-lg">
         {user?.status === 'pending' 
-          ? "Votre demande est en cours de traitement par notre équipe. L'activation se fait généralement sous 24h."
+          ? "Votre demande est en cours de traitement par notre équipe d'experts. L'activation se fait généralement sous 24h."
           : "Votre preuve de paiement a été transmise à l'administration. Votre compte sera activé sous 24h après validation."}
       </p>
-      <div className="flex flex-col sm:flex-row gap-4 mt-8">
-        <Link to="/discover" className="btn-primary">Retour à l'accueil</Link>
+      <div className="flex flex-col sm:flex-row gap-6 mt-12">
+        <Link to="/discover" className="btn-primary px-12 py-4">Retour à l'accueil</Link>
         {onLogout && (
-          <button onClick={onLogout} className="btn-secondary flex items-center justify-center gap-2">
-            <LogOut size={18} />
+          <button onClick={onLogout} className="btn-secondary flex items-center justify-center gap-3 px-12 py-4">
+            <LogOut size={20} />
             Se déconnecter
           </button>
         )}
@@ -1950,53 +2195,85 @@ const Subscription = ({ user, onLogout }: { user: any, onLogout?: () => void }) 
   );
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
-      <div className="grid md:grid-cols-2 gap-12">
-        <div className="space-y-8">
-          <h2 className="text-4xl font-serif">Abonnement Premium</h2>
-          <div className="bg-beige p-8 rounded-2xl border border-white/5 shadow-2xl">
-            <div className="text-5xl font-bold text-terracotta mb-2">2 000 Ar <span className="text-lg font-normal text-anthracite/60">/ 30 jours</span></div>
-            <p className="text-anthracite/70">Accès illimité aux profils compatibles, messagerie et découvertes quotidiennes pendant 30 jours.</p>
-            <p className="text-xs text-accent-light font-medium mt-2 italic">* Prévoir 150 Ar de frais de retrait (Total à envoyer : 2 150 Ar)</p>
+    <div className="min-h-screen bg-offwhite py-12 px-4 md:py-24">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-start">
+        <div className="space-y-12">
+          <div className="space-y-4">
+            <h2 className="text-6xl font-serif text-white leading-tight">Abonnement <span className="text-terracotta italic">Premium</span></h2>
+            <p className="text-white/40 text-lg uppercase tracking-widest font-black">Élégance • Sécurité • Compatibilité</p>
+          </div>
+
+          <div className="bg-beige p-10 rounded-[3rem] border border-terracotta/10 shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-terracotta/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-terracotta/10 transition-colors" />
+            <div className="text-6xl font-bold text-terracotta mb-4">2 000 Ar <span className="text-xl font-serif font-normal text-white/40 italic">/ 30 jours</span></div>
+            <p className="text-white/60 leading-relaxed">Accès illimité aux profils compatibles, messagerie sécurisée et découvertes quotidiennes exclusives pendant 30 jours.</p>
+            <div className="mt-6 p-4 bg-terracotta/5 rounded-2xl border border-terracotta/10">
+              <p className="text-xs text-terracotta font-black uppercase tracking-widest leading-relaxed">
+                * Prévoir 150 Ar de frais de retrait<br/>
+                Total à envoyer : 2 150 Ar
+              </p>
+            </div>
           </div>
           
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold uppercase tracking-widest text-anthracite/40 text-xs">Instructions MVola</h3>
-            <div className="bg-beige p-6 rounded-xl border border-white/5 space-y-3">
-              <div className="flex justify-between text-sm"><span className="text-anthracite/40">Numéro :</span> <span className="font-bold">038 93 263 31</span></div>
-              <div className="flex justify-between text-sm"><span className="text-anthracite/40">Nom :</span> <span className="font-bold">Lalatiana</span></div>
-              <div className="flex justify-between text-sm"><span className="text-anthracite/40">Opérateur :</span> <span className="font-bold text-orange-500">MVola uniquement</span></div>
-              <div className="flex justify-between text-sm"><span className="text-anthracite/40">Montant :</span> <span className="font-bold">2 000 Ar + 150 Ar (frais)</span></div>
-              <div className="flex justify-between border-t border-white/5 pt-2 mt-2"><span>Total à envoyer :</span> <span className="font-bold text-accent-light">2 150 Ar</span></div>
+          <div className="space-y-6">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 px-2">Instructions de Transfert</h3>
+            <div className="bg-beige p-8 rounded-[2.5rem] border border-white/5 space-y-4 shadow-xl">
+              <div className="flex justify-between items-center"><span className="text-white/40 text-sm">Numéro :</span> <span className="font-serif text-xl text-white">038 93 263 31</span></div>
+              <div className="flex justify-between items-center"><span className="text-white/40 text-sm">Nom :</span> <span className="font-serif text-xl text-white">Lalatiana</span></div>
+              <div className="flex justify-between items-center"><span className="text-white/40 text-sm">Opérateur :</span> <span className="text-orange-500 font-black uppercase tracking-widest text-xs">MVola uniquement</span></div>
+              <div className="pt-4 border-t border-white/5 flex justify-between items-center">
+                <span className="text-white/60 font-bold">Total à envoyer :</span> 
+                <span className="text-2xl font-bold text-terracotta">2 150 Ar</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="card bg-beige border-white/5">
-          <h3 className="text-2xl font-serif mb-6">Validation du paiement</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-anthracite/30 px-1">Votre numéro MVola</label>
-              <input placeholder="Ex: 034 XX XXX XX" className="w-full p-3 rounded-xl border border-white/5 bg-offwhite/50 focus:bg-offwhite/80 outline-none transition-all" value={mvolaNumber} onChange={e => setMvolaNumber(e.target.value)} required />
+        <div className="bg-beige rounded-[3rem] p-10 border border-terracotta/10 shadow-2xl">
+          <h3 className="text-3xl font-serif mb-8 text-white">Validation du paiement</h3>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">Votre numéro MVola</label>
+              <input 
+                placeholder="Ex: 034 XX XXX XX" 
+                className="w-full p-5 rounded-2xl border border-white/5 bg-offwhite text-white focus:border-terracotta/50 outline-none transition-all shadow-inner" 
+                value={mvolaNumber} 
+                onChange={e => setMvolaNumber(e.target.value)} 
+                required 
+              />
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-anthracite/30 px-1">ID Transaction (Obligatoire)</label>
-              <input placeholder="ID reçu par SMS" className="w-full p-3 rounded-xl border border-white/5 bg-offwhite/50 focus:bg-offwhite/80 outline-none transition-all" value={transactionId} onChange={e => setTransactionId(e.target.value)} required />
-              <p className="text-[10px] text-anthracite/20 px-1 italic">Le numéro de transaction reçu par SMS après votre transfert MVola.</p>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-white/20 px-2">ID Transaction</label>
+              <input 
+                placeholder="ID reçu par SMS" 
+                className="w-full p-5 rounded-2xl border border-white/5 bg-offwhite text-white focus:border-terracotta/50 outline-none transition-all shadow-inner font-mono" 
+                value={transactionId} 
+                onChange={e => setTransactionId(e.target.value)} 
+                required 
+              />
+              <p className="text-[10px] text-white/20 px-2 italic">Le numéro de transaction reçu par SMS après votre transfert.</p>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-anthracite/30 px-1">Référence (Optionnel)</label>
-              <input placeholder="Référence de l'envoi" className="w-full p-3 rounded-xl border border-white/5 bg-offwhite/50 focus:bg-offwhite/80 outline-none transition-all" value={reference} onChange={e => setReference(e.target.value)} />
-            </div>
-            <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center bg-offwhite/30">
+            
+            <div className="relative group">
               <input type="file" id="proof" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
-              <label htmlFor="proof" className="cursor-pointer flex flex-col items-center gap-2">
-                <CreditCard className="text-anthracite/20" />
-                <span className="text-sm font-medium text-anthracite/60">{file ? file.name : "Capture d'écran (Optionnel si ID fourni)"}</span>
+              <label htmlFor="proof" className="cursor-pointer flex flex-col items-center justify-center gap-4 p-10 border-2 border-dashed border-terracotta/20 rounded-[2.5rem] bg-white/5 group-hover:bg-white/10 group-hover:border-terracotta/40 transition-all">
+                <div className="w-16 h-16 bg-terracotta/10 rounded-full flex items-center justify-center text-terracotta">
+                  <Camera size={32} />
+                </div>
+                <div className="text-center">
+                  <span className="block text-sm font-bold text-white mb-1">{file ? file.name : "Preuve de paiement"}</span>
+                  <span className="text-[10px] text-white/20 uppercase tracking-widest font-black">Capture d'écran (Optionnel)</span>
+                </div>
               </label>
             </div>
-            <button disabled={loading} className="btn-primary w-full py-4 mt-4">
-              {loading ? "Envoi en cours..." : "Confirmer le paiement"}
+
+            <button disabled={loading} className="btn-primary w-full py-5 rounded-2xl text-sm font-black uppercase tracking-[0.2em] shadow-2xl shadow-terracotta/20 mt-4">
+              {loading ? (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Traitement...
+                </div>
+              ) : "Confirmer le paiement"}
             </button>
           </form>
         </div>
@@ -2153,15 +2430,15 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache, onlineUs
           <div className="inline-block bg-terracotta/10 text-terracotta px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-terracotta/20">
             Algorithme 70%
           </div>
-          <h2 className="text-6xl font-serif mb-4 tracking-tight">Vos Affinités</h2>
-          <p className="text-anthracite/50 text-xl font-serif italic mb-8">Découvrez les profils qui résonnent avec votre âme.</p>
+          <h2 className="text-6xl font-serif mb-4 tracking-tight text-white">Vos Affinités</h2>
+          <p className="text-white/50 text-xl font-serif italic mb-8">Découvrez les profils qui résonnent avec votre âme.</p>
           
           <div className="relative max-w-xl group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-anthracite/20 group-focus-within:text-terracotta transition-colors" size={22} />
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-terracotta transition-colors" size={22} />
             <input 
               type="text" 
               placeholder="Rechercher une ville, un prénom..." 
-              className="w-full pl-14 pr-6 py-5 rounded-[2rem] border border-white/5 bg-white/5 focus:bg-white/10 focus:border-terracotta/30 transition-all outline-none text-lg shadow-2xl"
+              className="w-full pl-14 pr-6 py-5 rounded-[2rem] border border-white/5 bg-white/5 text-white focus:bg-white/10 focus:border-terracotta/30 transition-all outline-none text-lg shadow-2xl shadow-black/40"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -2172,8 +2449,8 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache, onlineUs
           <button 
             onClick={() => setShowFilters(!showFilters)}
             className={cn(
-              "flex items-center gap-3 px-6 py-4 rounded-2xl border transition-all font-bold uppercase tracking-widest text-xs",
-              showFilters ? "bg-terracotta text-white border-terracotta shadow-lg shadow-terracotta/20" : "bg-white/5 border-white/5 text-anthracite/40 hover:bg-white/10"
+              "flex items-center gap-3 px-6 py-4 rounded-2xl border transition-all font-black uppercase tracking-widest text-[10px]",
+              showFilters ? "bg-terracotta text-white border-terracotta shadow-lg shadow-terracotta/20" : "bg-white/5 border-white/5 text-white/40 hover:bg-white/10"
             )}
           >
             <Filter size={18} />
@@ -2191,7 +2468,7 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache, onlineUs
               }}
               className={cn(
                 "px-4 py-2 rounded-xl text-[10px] font-black transition-all flex items-center gap-2 uppercase tracking-widest",
-                sortBy === 'compatibility' ? "bg-terracotta text-white shadow-lg shadow-terracotta/20" : "text-anthracite/30 hover:text-anthracite/60"
+                sortBy === 'compatibility' ? "bg-terracotta text-white shadow-lg shadow-terracotta/20" : "text-white/30 hover:text-white/60"
               )}
             >
               Affinité
@@ -2204,7 +2481,7 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache, onlineUs
               }}
               className={cn(
                 "px-4 py-2 rounded-xl text-[10px] font-black transition-all flex items-center gap-2 uppercase tracking-widest",
-                sortBy === 'age' ? "bg-terracotta text-white shadow-lg shadow-terracotta/20" : "text-anthracite/30 hover:text-anthracite/60"
+                sortBy === 'age' ? "bg-terracotta text-white shadow-lg shadow-terracotta/20" : "text-white/30 hover:text-white/60"
               )}
             >
               Âge
@@ -2224,47 +2501,41 @@ const Discover = ({ user, updateCache, discoverCache, setDiscoverCache, onlineUs
           >
             <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 shadow-2xl">
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-anthracite/30 px-1">Ville</label>
-                <div className="relative">
-                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-anthracite/20" />
-                  <input 
-                    type="text" 
-                    placeholder="Toutes les villes" 
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-white/5 bg-white/5 text-sm focus:bg-white/10 transition-all outline-none"
-                    value={filterCity}
-                    onChange={(e) => setFilterCity(e.target.value)}
-                  />
+                <AestheticSelect 
+                  label="Ville" 
+                  options={["Toutes", ...CITIES]} 
+                  value={filterCity || "Toutes"} 
+                  onChange={v => setFilterCity(v === "Toutes" ? "" : v)} 
+                  dark 
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 px-1">Âge</label>
+                <div className="flex items-center gap-3">
+                  <input type="number" placeholder="Min" className="w-full p-3 rounded-xl border border-white/5 bg-white/5 text-sm focus:bg-white/10 transition-all outline-none text-white" value={filterMinAge} onChange={e => setFilterMinAge(e.target.value ? parseInt(e.target.value) : '')} />
+                  <div className="w-4 h-[1px] bg-white/10"></div>
+                  <input type="number" placeholder="Max" className="w-full p-3 rounded-xl border border-white/5 bg-white/5 text-sm focus:bg-white/10 transition-all outline-none text-white" value={filterMaxAge} onChange={e => setFilterMaxAge(e.target.value ? parseInt(e.target.value) : '')} />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-anthracite/30 px-1">Âge</label>
-                <div className="flex items-center gap-3">
-                  <input type="number" placeholder="Min" className="w-full p-3 rounded-xl border border-white/5 bg-white/5 text-sm focus:bg-white/10 transition-all outline-none" value={filterMinAge} onChange={e => setFilterMinAge(e.target.value ? parseInt(e.target.value) : '')} />
-                  <div className="w-4 h-[1px] bg-white/10"></div>
-                  <input type="number" placeholder="Max" className="w-full p-3 rounded-xl border border-white/5 bg-white/5 text-sm focus:bg-white/10 transition-all outline-none" value={filterMaxAge} onChange={e => setFilterMaxAge(e.target.value ? parseInt(e.target.value) : '')} />
-                </div>
-              </div>
-              
-              <div className="space-y-3 sm:col-span-2 lg:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-anthracite/30 px-1">Religion</label>
-                <ChoiceGrid 
+                <AestheticSelect 
+                  label="Religion" 
                   options={["Toutes", "Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} 
                   value={filterReligion || "Toutes"} 
                   onChange={v => setFilterReligion(v === "Toutes" ? "" : v)} 
-                  columns={3}
-                  dark
+                  dark 
                 />
               </div>
 
-              <div className="space-y-3 sm:col-span-2 lg:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-anthracite/30 px-1">Physique</label>
-                <ChoiceGrid 
-                  options={["Tous", "Svelte", "Moyenne", "Athlétique", "En formes"]} 
+              <div className="space-y-3">
+                <AestheticSelect 
+                  label="Physique" 
+                  options={["Tous", "Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} 
                   value={filterPhysique || "Tous"} 
                   onChange={v => setFilterPhysique(v === "Tous" ? "" : v)} 
-                  columns={3}
-                  dark
+                  dark 
                 />
               </div>
 
@@ -3398,32 +3669,144 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
         </div>
       )}
 
-      <div className="card">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-serif">Mon Profil</h2>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => setEditMode(editMode === 'profile' ? 'none' : 'profile')}
-              className="px-4 py-2 bg-terracotta/10 text-terracotta rounded-xl font-bold hover:bg-terracotta hover:text-white transition-all text-sm"
-            >
-              {editMode === 'profile' ? 'Annuler' : 'Modifier Profil'}
-            </button>
-            <button 
-              onClick={() => setEditMode(editMode === 'preferences' ? 'none' : 'preferences')}
-              className="px-4 py-2 bg-anthracite/10 text-anthracite rounded-xl font-bold hover:bg-anthracite hover:text-white transition-all text-sm"
-            >
-              {editMode === 'preferences' ? 'Annuler' : 'Modifier Préférences'}
-            </button>
-            <button 
-              onClick={() => setEditMode(editMode === 'photos' ? 'none' : 'photos')}
-              className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold hover:bg-indigo-600 hover:text-white transition-all text-sm"
-            >
-              {editMode === 'photos' ? 'Annuler' : 'Gérer Photos'}
-            </button>
-          </div>
+      <div className="bg-offwhite rounded-[3rem] overflow-hidden border border-terracotta/10 shadow-2xl">
+        {/* Profile Header / Banner */}
+        <div className="relative h-48 bg-gradient-to-r from-beige to-offwhite overflow-hidden">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-offwhite" />
         </div>
 
-        {editMode === 'photos' ? (
+        <div className="px-8 pb-12 -mt-24 relative z-10">
+          <div className="flex flex-col items-center">
+            {/* Main Profile Photo */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-terracotta blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
+              <div className="w-48 h-48 rounded-[2.5rem] border-4 border-terracotta p-1 bg-offwhite relative z-10 overflow-hidden shadow-2xl">
+                <img 
+                  src={profileData?.photo_url || 'https://picsum.photos/seed/profile/400/400'} 
+                  className="w-full h-full object-cover rounded-[2rem]" 
+                  alt="" 
+                />
+              </div>
+              <button 
+                onClick={() => setEditMode('photos')}
+                className="absolute bottom-2 right-2 p-3 bg-terracotta text-white rounded-2xl shadow-xl hover:scale-110 transition-all z-20"
+              >
+                <Camera size={20} />
+              </button>
+            </div>
+
+            <div className="mt-6 text-center">
+              <h2 className="text-4xl font-serif text-white mb-2">{profileData?.first_name}, {profileData?.age}</h2>
+              <div className="flex items-center justify-center gap-2 text-terracotta text-[10px] font-black uppercase tracking-[0.3em]">
+                <MapPin size={12} />
+                {profileData?.city}
+              </div>
+            </div>
+
+            {/* Stats Section */}
+            <div className="grid grid-cols-3 gap-8 mt-12 w-full max-w-md">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-full border border-terracotta/30 flex items-center justify-center bg-terracotta/5 shadow-lg shadow-terracotta/10">
+                  <span className="text-xl font-serif text-white font-bold">12</span>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Likes</span>
+              </div>
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-20 h-20 rounded-full border-2 border-terracotta flex items-center justify-center bg-terracotta/10 shadow-xl shadow-terracotta/20">
+                  <span className="text-2xl font-serif text-white font-bold">8</span>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-terracotta">Matches</span>
+              </div>
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-full border border-terracotta/30 flex items-center justify-center bg-terracotta/5 shadow-lg shadow-terracotta/10">
+                  <span className="text-xl font-serif text-white font-bold">70%</span>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Affinité</span>
+              </div>
+            </div>
+
+            {/* Action Tabs */}
+            <div className="flex gap-4 mt-12 p-2 bg-beige rounded-2xl border border-terracotta/10">
+              <button 
+                onClick={() => setEditMode(editMode === 'profile' ? 'none' : 'profile')}
+                className={cn(
+                  "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  editMode === 'profile' ? "bg-terracotta text-white shadow-lg" : "text-white/40 hover:text-white"
+                )}
+              >
+                Profil
+              </button>
+              <button 
+                onClick={() => setEditMode(editMode === 'preferences' ? 'none' : 'preferences')}
+                className={cn(
+                  "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  editMode === 'preferences' ? "bg-terracotta text-white shadow-lg" : "text-white/40 hover:text-white"
+                )}
+              >
+                Préférences
+              </button>
+              <button 
+                onClick={() => setEditMode(editMode === 'photos' ? 'none' : 'photos')}
+                className={cn(
+                  "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  editMode === 'photos' ? "bg-terracotta text-white shadow-lg" : "text-white/40 hover:text-white"
+                )}
+              >
+                Galerie
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-12 space-y-8">
+            {editMode === 'none' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Bio Section */}
+                <div className="md:col-span-2 bg-beige p-8 rounded-[2.5rem] border border-terracotta/10 shadow-xl">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-terracotta">Ma Bio</h3>
+                    <button 
+                      onClick={() => setEditMode('profile')}
+                      className="p-2 text-white/20 hover:text-terracotta transition-colors"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                  </div>
+                  <p className="text-white/80 text-sm leading-relaxed italic">
+                    "{profileData?.bio || "Pas encore de bio... Cliquez sur Modifier pour en ajouter une !"}"
+                  </p>
+                </div>
+
+                {/* Details Grid */}
+                <div className="bg-beige p-8 rounded-[2.5rem] border border-terracotta/10 shadow-xl">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-terracotta mb-6">Style de vie</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-3 border-b border-white/5">
+                      <span className="text-xs text-white/40 uppercase tracking-widest">Hobbies</span>
+                      <span className="text-sm text-white font-medium">{profileData?.hobbies || "—"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-white/5">
+                      <span className="text-xs text-white/40 uppercase tracking-widest">Talent</span>
+                      <span className="text-sm text-white font-medium">{profileData?.talent || "—"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-beige p-8 rounded-[2.5rem] border border-terracotta/10 shadow-xl">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-terracotta mb-6">Apparence & Foi</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-3 border-b border-white/5">
+                      <span className="text-xs text-white/40 uppercase tracking-widest">Physique</span>
+                      <span className="text-sm text-white font-medium">{profileData?.physique || "—"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-white/5">
+                      <span className="text-xs text-white/40 uppercase tracking-widest">Religion</span>
+                      <span className="text-sm text-white font-medium">{profileData?.religion || "—"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : editMode === 'photos' ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-serif">Ma Galerie Photos</h3>
@@ -3475,129 +3858,225 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
             </div>
           </div>
         ) : editMode === 'profile' && profileData ? (
-          <form onSubmit={handleProfileUpdate} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="col-span-full">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-bold uppercase text-anthracite/40 block">Bio / Présentation</label>
-                  <button 
-                    type="button"
-                    onClick={async () => {
-                      if (!profileData.bio) {
-                        addToast("Info", "info", "Écrivez d'abord un brouillon de bio pour que je puisse l'optimiser.");
-                        return;
+          <form onSubmit={handleProfileUpdate} className="space-y-8">
+            <div className="bg-beige p-8 rounded-[2.5rem] border border-terracotta/10 shadow-xl">
+              <div className="flex justify-between items-center mb-6">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-terracotta">Ma Bio</label>
+                <button 
+                  type="button"
+                  onClick={async () => {
+                    if (!profileData.bio) {
+                      addToast("Info", "info", "Écrivez d'abord un brouillon de bio pour que je puisse l'optimiser.");
+                      return;
+                    }
+                    setSaveLoading(true);
+                    try {
+                      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+                      const model = "gemini-3-flash-preview";
+                      const response = await ai.models.generateContent({
+                        model,
+                        contents: `Optimise cette bio de rencontre pour Affinity70 (app premium à Madagascar). 
+                        Rends-la plus élégante, mystérieuse et attirante, tout en restant authentique. 
+                        Bio actuelle : "${profileData.bio}"
+                        Réponds uniquement avec la nouvelle bio optimisée en français.`,
+                      });
+                      if (response.text) {
+                        setProfileData({...profileData, bio: response.text.trim()});
+                        addToast("IA", "success", "Votre bio a été optimisée avec élégance !");
                       }
-                      setSaveLoading(true);
-                      try {
-                        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-                        const model = "gemini-3-flash-preview";
-                        const response = await ai.models.generateContent({
-                          model,
-                          contents: `Optimise cette bio de rencontre pour Affinity70 (app premium à Madagascar). 
-                          Rends-la plus élégante, mystérieuse et attirante, tout en restant authentique. 
-                          Bio actuelle : "${profileData.bio}"
-                          Réponds uniquement avec la nouvelle bio optimisée en français.`,
-                        });
-                        if (response.text) {
-                          setProfileData({...profileData, bio: response.text.trim()});
-                          addToast("IA", "success", "Votre bio a été optimisée avec élégance !");
-                        }
-                      } catch (err) {
-                        console.error(err);
-                        addToast("IA", "error", "Impossible d'optimiser la bio pour le moment.");
-                      } finally {
-                        setSaveLoading(false);
-                      }
-                    }}
-                    disabled={saveLoading}
-                    className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-terracotta hover:text-terracotta/80 transition-colors"
-                  >
-                    <Wand2 size={12} />
-                    Optimiser avec l'IA
-                  </button>
-                </div>
-                <textarea 
-                  className="w-full p-3 rounded-xl border min-h-[100px]" 
-                  value={profileData.bio || ''} 
-                  onChange={e => setProfileData({...profileData, bio: e.target.value})}
-                />
+                    } catch (err) {
+                      console.error(err);
+                      addToast("IA", "error", "Impossible d'optimiser la bio pour le moment.");
+                    } finally {
+                      setSaveLoading(false);
+                    }
+                  }}
+                  disabled={saveLoading}
+                  className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-terracotta hover:text-white transition-all bg-terracotta/10 px-4 py-2 rounded-xl"
+                >
+                  <Wand2 size={12} />
+                  Optimiser avec l'IA
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Prénom</label>
-                <input className="w-full p-3 rounded-xl border" value={profileData.first_name} onChange={e => setProfileData({...profileData, firstName: e.target.value, first_name: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Nom</label>
-                <input className="w-full p-3 rounded-xl border" value={profileData.last_name} onChange={e => setProfileData({...profileData, lastName: e.target.value, last_name: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Âge</label>
-                <input type="number" className="w-full p-3 rounded-xl border" value={profileData.age} onChange={e => setProfileData({...profileData, age: parseInt(e.target.value)})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Ville</label>
-                <ChoiceGrid options={CITIES} value={profileData.city} onChange={v => setProfileData({...profileData, city: v})} columns={3} />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Loisirs / Hobbies</label>
-                <input className="w-full p-3 rounded-xl border" value={profileData.hobbies} onChange={e => setProfileData({...profileData, hobbies: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Talent</label>
-                <input className="w-full p-3 rounded-xl border" value={profileData.talent} onChange={e => setProfileData({...profileData, talent: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Physique</label>
-                <ChoiceGrid options={["Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} value={profileData.physique} onChange={v => setProfileData({...profileData, physique: v})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Religion</label>
-                <ChoiceGrid options={["Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} value={profileData.religion} onChange={v => setProfileData({...profileData, religion: v})} columns={3} />
-              </div>
+              <textarea 
+                className="w-full p-6 bg-offwhite rounded-2xl border border-terracotta/10 outline-none focus:border-terracotta/50 text-white text-sm min-h-[150px] transition-all" 
+                value={profileData.bio || ''} 
+                onChange={e => setProfileData({...profileData, bio: e.target.value})}
+                placeholder="Racontez votre histoire..."
+              />
             </div>
-            <button type="submit" disabled={saveLoading} className="btn-primary w-full py-4">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-4">Prénom</label>
+                <input className="w-full p-5 bg-beige rounded-2xl border border-terracotta/10 focus:border-terracotta/50 outline-none text-white transition-all" value={profileData.first_name} onChange={e => setProfileData({...profileData, firstName: e.target.value, first_name: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-4">Nom</label>
+                <input className="w-full p-5 bg-beige rounded-2xl border border-terracotta/10 focus:border-terracotta/50 outline-none text-white transition-all" value={profileData.last_name} onChange={e => setProfileData({...profileData, lastName: e.target.value, last_name: e.target.value})} />
+              </div>
+              
+              <AestheticNumberPicker 
+                label="Âge" 
+                value={profileData.age} 
+                onChange={v => setProfileData({...profileData, age: v})} 
+                min={16} 
+                max={99} 
+                unit="ans"
+              />
+
+              <AestheticSelect 
+                label="Ville" 
+                options={CITIES} 
+                value={profileData.city} 
+                onChange={v => setProfileData({...profileData, city: v})} 
+              />
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-4">Loisirs / Hobbies</label>
+                <input className="w-full p-5 bg-beige rounded-2xl border border-terracotta/10 focus:border-terracotta/50 outline-none text-white transition-all" value={profileData.hobbies} onChange={e => setProfileData({...profileData, hobbies: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-4">Talent</label>
+                <input className="w-full p-5 bg-beige rounded-2xl border border-terracotta/10 focus:border-terracotta/50 outline-none text-white transition-all" value={profileData.talent} onChange={e => setProfileData({...profileData, talent: e.target.value})} />
+              </div>
+
+              <AestheticSelect 
+                label="Physique" 
+                options={["Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} 
+                value={profileData.physique} 
+                onChange={v => setProfileData({...profileData, physique: v})} 
+              />
+              <AestheticSelect 
+                label="Religion" 
+                options={["Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} 
+                value={profileData.religion} 
+                onChange={v => setProfileData({...profileData, religion: v})} 
+              />
+            </div>
+
+            <button type="submit" disabled={saveLoading} className="w-full py-6 bg-terracotta text-white rounded-3xl font-black uppercase tracking-[0.3em] text-xs shadow-xl shadow-terracotta/20 hover:bg-accent-light transition-all disabled:opacity-50">
               {saveLoading ? 'Enregistrement...' : 'Enregistrer les modifications'}
             </button>
           </form>
         ) : editMode === 'preferences' && prefsData ? (
-          <form onSubmit={handlePrefsUpdate} className="space-y-6">
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Âge Min</label>
-                  <input type="number" className="w-full p-3 rounded-xl border" value={prefsData.min_age} onChange={e => setPrefsData({...prefsData, minAge: parseInt(e.target.value), min_age: parseInt(e.target.value)})} />
-                </div>
-                <div>
-                  <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Âge Max</label>
-                  <input type="number" className="w-full p-3 rounded-xl border" value={prefsData.max_age} onChange={e => setPrefsData({...prefsData, maxAge: parseInt(e.target.value), max_age: parseInt(e.target.value)})} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Ville idéale</label>
-                <ChoiceGrid options={["Indifférent", ...CITIES]} value={prefsData.city} onChange={v => setPrefsData({...prefsData, city: v})} columns={3} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Religion</label>
-                <ChoiceGrid options={["Indifférent", "Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} value={prefsData.religion} onChange={v => setPrefsData({...prefsData, religion: v})} columns={3} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-anthracite/40 block mb-1">Physique</label>
-                <ChoiceGrid options={["Indifférent", "Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} value={prefsData.physique} onChange={v => setPrefsData({...prefsData, physique: v})} />
+          <form onSubmit={handlePrefsUpdate} className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <AestheticNumberPicker 
+                label="Âge Min" 
+                value={prefsData.min_age} 
+                onChange={v => setPrefsData({...prefsData, minAge: v, min_age: v})} 
+                min={16} 
+                max={99} 
+                unit="ans"
+              />
+              <AestheticNumberPicker 
+                label="Âge Max" 
+                value={prefsData.max_age} 
+                onChange={v => setPrefsData({...prefsData, maxAge: v, max_age: v})} 
+                min={16} 
+                max={99} 
+                unit="ans"
+              />
+              
+              <div className="md:col-span-2 space-y-8">
+                <AestheticSelect 
+                  label="Ville idéale" 
+                  options={["Indifférent", ...CITIES]} 
+                  value={prefsData.city} 
+                  onChange={v => setPrefsData({...prefsData, city: v})} 
+                />
+                <AestheticSelect 
+                  label="Religion" 
+                  options={["Indifférent", "Protestant(e)", "Catholique", "Adventiste", "Musulman(e)", "Autre"]} 
+                  value={prefsData.religion} 
+                  onChange={v => setPrefsData({...prefsData, religion: v})} 
+                />
+                <AestheticSelect 
+                  label="Physique" 
+                  options={["Indifférent", "Svelte", "Moyenne", "Athlétique", "En formes", "Autre"]} 
+                  value={prefsData.physique} 
+                  onChange={v => setPrefsData({...prefsData, physique: v})} 
+                />
               </div>
             </div>
-            <button type="submit" disabled={saveLoading} className="btn-primary w-full py-4">
+            <button type="submit" disabled={saveLoading} className="w-full py-6 bg-terracotta text-white rounded-3xl font-black uppercase tracking-[0.3em] text-xs shadow-xl shadow-terracotta/20 hover:bg-accent-light transition-all disabled:opacity-50">
               {saveLoading ? 'Enregistrement...' : 'Enregistrer les préférences'}
             </button>
           </form>
         ) : (
-          <div className="space-y-4">
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-anthracite/60">Email</span>
-              <span className="font-medium">{user.email}</span>
+          <div className="space-y-12">
+            {/* Bio Section */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-terracotta">Bio / Présentation</span>
+                <button 
+                  onClick={async () => {
+                    if (!profileData?.bio) {
+                      addToast("Info", "info", "Écrivez d'abord un brouillon de bio pour que je puisse l'optimiser.");
+                      return;
+                    }
+                    setSaveLoading(true);
+                    try {
+                      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+                      const model = "gemini-3-flash-preview";
+                      const response = await ai.models.generateContent({
+                        model,
+                        contents: `Optimise cette bio de rencontre pour Affinity70 (app premium à Madagascar). 
+                        Rends-la plus élégante, mystérieuse et attirante, tout en restant authentique. 
+                        Bio actuelle : "${profileData.bio}"
+                        Réponds uniquement avec la nouvelle bio optimisée en français.`,
+                      });
+                      if (response.text) {
+                        setProfileData({...profileData, bio: response.text.trim()});
+                        addToast("IA", "success", "Votre bio a été optimisée avec élégance !");
+                        // Save to DB
+                        await fetch('/api/profile', {
+                          method: 'POST',
+                          headers: getAuthHeaders(),
+                          body: JSON.stringify({ ...profileData, bio: response.text.trim() })
+                        });
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      addToast("IA", "error", "Impossible d'optimiser la bio pour le moment.");
+                    } finally {
+                      setSaveLoading(false);
+                    }
+                  }}
+                  className="text-terracotta hover:scale-110 transition-all"
+                  title="Optimiser avec l'IA"
+                >
+                  <Wand2 size={24} />
+                </button>
+              </div>
+              <p className="text-xl font-serif text-white leading-relaxed italic">
+                {profileData?.bio || "Aucune bio renseignée."}
+              </p>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-anthracite/60">Statut</span>
-              <span className="text-green-500 font-bold uppercase">{user.status}</span>
+
+            {/* Identity Grid */}
+            <div className="grid grid-cols-2 gap-8">
+              <div className="text-center space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-terracotta block">Prénom</span>
+                <span className="text-3xl font-serif text-white block">{profileData?.first_name || "—"}</span>
+              </div>
+              <div className="text-center space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-terracotta block">Nom</span>
+                <span className="text-3xl font-serif text-white block">{profileData?.last_name || "—"}</span>
+              </div>
+            </div>
+
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4 pt-8 border-t border-white/5">
+              <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl">
+                <span className="text-xs text-anthracite/40 uppercase font-bold">Email</span>
+                <span className="text-sm text-white">{user.email}</span>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl">
+                <span className="text-xs text-anthracite/40 uppercase font-bold">Statut</span>
+                <span className="text-xs text-green-500 font-black uppercase tracking-widest">{user.status}</span>
+              </div>
             </div>
           </div>
         )}
@@ -3945,62 +4424,62 @@ const Admin = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 md:py-12">
-      <div className="mb-10">
-        <h2 className="text-4xl font-serif mb-2">Espace Admin</h2>
-        <p className="text-anthracite/60">Gestion de la plateforme et modération.</p>
+      <div className="mb-12">
+        <h2 className="text-4xl font-serif mb-2 text-white">Espace Admin</h2>
+        <p className="text-terracotta text-xs font-black uppercase tracking-[0.3em]">Gestion & Modération</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
         {/* Sidebar Navigation */}
-        <div className="lg:col-span-1 space-y-2">
+        <div className="lg:col-span-1 space-y-3">
           <button 
             onClick={() => setActiveTab('transactions')}
             className={cn(
-              "w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-sm font-bold transition-all",
+              "w-full flex items-center gap-4 px-6 py-5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border",
               activeTab === 'transactions' 
-                ? "bg-terracotta text-offwhite shadow-lg shadow-black/40" 
-                : "bg-beige text-anthracite/60 hover:bg-beige/80 hover:text-terracotta border border-white/5"
+                ? "bg-terracotta text-white border-terracotta shadow-xl shadow-terracotta/20" 
+                : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10 hover:text-white"
             )}
           >
-            <CreditCard size={20} />
+            <CreditCard size={18} />
             <span>Paiements</span>
             <span className={cn(
               "ml-auto px-2 py-0.5 rounded-full text-[10px]",
-              activeTab === 'transactions' ? "bg-white/20" : "bg-terracotta/10 text-terracotta"
+              activeTab === 'transactions' ? "bg-white/20" : "bg-terracotta/20 text-terracotta"
             )}>{txs.length}</span>
           </button>
           
           <button 
             onClick={() => setActiveTab('reports')}
             className={cn(
-              "w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-sm font-bold transition-all",
+              "w-full flex items-center gap-4 px-6 py-5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border",
               activeTab === 'reports' 
-                ? "bg-terracotta text-offwhite shadow-lg shadow-black/40" 
-                : "bg-beige text-anthracite/60 hover:bg-beige/80 hover:text-terracotta border border-white/5"
+                ? "bg-terracotta text-white border-terracotta shadow-xl shadow-terracotta/20" 
+                : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10 hover:text-white"
             )}
           >
-            <Shield size={20} />
+            <Shield size={18} />
             <span>Signalements</span>
             <span className={cn(
               "ml-auto px-2 py-0.5 rounded-full text-[10px]",
-              activeTab === 'reports' ? "bg-white/20" : "bg-terracotta/10 text-terracotta"
+              activeTab === 'reports' ? "bg-white/20" : "bg-terracotta/20 text-terracotta"
             )}>{reports.length}</span>
           </button>
           
           <button 
             onClick={() => setActiveTab('suggestions')}
             className={cn(
-              "w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-sm font-bold transition-all",
+              "w-full flex items-center gap-4 px-6 py-5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border",
               activeTab === 'suggestions' 
-                ? "bg-terracotta text-offwhite shadow-lg shadow-black/40" 
-                : "bg-beige text-anthracite/60 hover:bg-beige/80 hover:text-terracotta border border-white/5"
+                ? "bg-terracotta text-white border-terracotta shadow-xl shadow-terracotta/20" 
+                : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10 hover:text-white"
             )}
           >
-            <Lightbulb size={20} />
+            <Lightbulb size={18} />
             <span>Suggestions</span>
             <span className={cn(
               "ml-auto px-2 py-0.5 rounded-full text-[10px]",
-              activeTab === 'suggestions' ? "bg-white/20" : "bg-terracotta/10 text-terracotta"
+              activeTab === 'suggestions' ? "bg-white/20" : "bg-terracotta/20 text-terracotta"
             )}>{suggestions.length}</span>
           </button>
         </div>
@@ -4008,57 +4487,57 @@ const Admin = () => {
         {/* Main Content Area */}
         <div className="lg:col-span-3">
           {activeTab === 'transactions' ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-serif">Transactions en attente</h3>
-                <div className="text-xs font-bold text-terracotta uppercase tracking-wider">M-Vola / Orange Money</div>
+            <div className="space-y-8">
+              <div className="flex items-center justify-between border-b border-white/5 pb-6">
+                <h3 className="text-2xl font-serif text-white">Transactions en attente</h3>
+                <div className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em]">M-Vola / Orange Money</div>
               </div>
               
               {txs.length === 0 ? (
-                <div className="card p-20 text-center bg-beige/50 border-dashed">
-                  <div className="bg-green-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="text-green-500" size={32} />
+                <div className="p-20 text-center bg-white/5 rounded-[3rem] border border-white/5 border-dashed">
+                  <div className="bg-terracotta/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle className="text-terracotta" size={32} />
                   </div>
-                  <h3 className="text-xl font-serif mb-2">Tout est en ordre</h3>
-                  <p className="text-anthracite/40">Aucun paiement en attente de validation.</p>
+                  <h3 className="text-xl font-serif mb-2 text-white">Tout est en ordre</h3>
+                  <p className="text-white/40 text-sm">Aucun paiement en attente de validation.</p>
                 </div>
               ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-6">
                   {txs.map(t => (
                     <motion.div 
                       layout
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       key={t.id} 
-                      className="bg-beige rounded-3xl p-6 border border-white/5 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
+                      className="bg-white/5 rounded-[2.5rem] p-8 border border-white/5 hover:border-terracotta/20 transition-all flex flex-col md:flex-row md:items-center justify-between gap-8 group shadow-2xl"
                     >
-                      <div className="flex gap-4 items-center">
-                        <div className="w-12 h-12 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta font-bold text-lg">
+                      <div className="flex gap-6 items-center">
+                        <div className="w-16 h-16 bg-terracotta/10 rounded-[1.5rem] flex items-center justify-center text-terracotta font-serif text-2xl border border-terracotta/20">
                           {t.first_name[0]}
                         </div>
                         <div>
-                          <div className="font-bold text-lg">{t.first_name} {t.last_name}</div>
-                          <div className="text-sm text-anthracite/40">{t.email}</div>
+                          <div className="font-serif text-xl text-white">{t.first_name} {t.last_name}</div>
+                          <div className="text-xs text-white/40 font-medium">{t.email}</div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 md:flex md:gap-8 gap-4">
+                      <div className="grid grid-cols-2 md:flex md:gap-12 gap-6">
                         <div>
-                          <div className="text-[10px] font-bold text-anthracite/30 uppercase">Mobile</div>
-                          <div className="font-medium">{t.mvola_number}</div>
+                          <div className="text-[10px] font-black text-terracotta uppercase tracking-widest mb-1">Mobile</div>
+                          <div className="font-medium text-white">{t.mvola_number}</div>
                         </div>
                         <div>
-                          <div className="text-[10px] font-bold text-anthracite/30 uppercase">ID Trans.</div>
-                          <div className="font-mono text-xs bg-offwhite/50 px-2 py-1 rounded border border-white/5">{t.transaction_id}</div>
+                          <div className="text-[10px] font-black text-terracotta uppercase tracking-widest mb-1">ID Trans.</div>
+                          <div className="font-mono text-xs bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-white/80">{t.transaction_id}</div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         {t.proof_url && (
                           <a 
                             href={t.proof_url} 
                             target="_blank" 
-                            className="p-3 bg-offwhite/50 text-anthracite/60 rounded-2xl hover:bg-offwhite transition-colors border border-white/5"
+                            className="w-12 h-12 flex items-center justify-center bg-white/5 text-white/40 rounded-2xl hover:bg-white/10 hover:text-white transition-all border border-white/10"
                             title="Voir la preuve"
                           >
                             <Search size={20} />
@@ -4067,14 +4546,14 @@ const Admin = () => {
                         <button 
                           onClick={() => reject(t.id)} 
                           disabled={actionLoading === t.id}
-                          className="p-3 bg-offwhite/50 text-anthracite/40 hover:text-terracotta hover:bg-terracotta/10 rounded-2xl transition-all border border-white/5"
+                          className="w-12 h-12 flex items-center justify-center bg-white/5 text-white/40 hover:text-red-400 hover:bg-red-400/10 rounded-2xl transition-all border border-white/10"
                         >
                           <X size={20} />
                         </button>
                         <button 
                           onClick={() => approve(t.id, t.user_id)} 
                           disabled={actionLoading === t.id}
-                          className="flex items-center gap-2 bg-terracotta text-offwhite px-6 py-3 rounded-2xl font-bold shadow-lg shadow-black/40 hover:bg-accent-hover transition-all disabled:opacity-50"
+                          className="flex items-center gap-3 bg-terracotta text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-terracotta/20 hover:bg-accent-light transition-all disabled:opacity-50"
                         >
                           {actionLoading === t.id ? (
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -4090,69 +4569,69 @@ const Admin = () => {
               )}
             </div>
           ) : activeTab === 'reports' ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-serif">Signalements & Modération</h3>
-                <div className="text-xs font-bold text-slate-600 uppercase tracking-wider">Sécurité de la plateforme</div>
+            <div className="space-y-8">
+              <div className="flex items-center justify-between border-b border-white/5 pb-6">
+                <h3 className="text-2xl font-serif text-white">Signalements & Modération</h3>
+                <div className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em]">Sécurité</div>
               </div>
 
               {reports.length === 0 ? (
-                <div className="card p-20 text-center bg-beige/50 border-dashed">
-                  <div className="bg-offwhite/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
-                    <ShieldCheck className="text-slate-400" size={32} />
+                <div className="p-20 text-center bg-white/5 rounded-[3rem] border border-white/5 border-dashed">
+                  <div className="bg-white/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
+                    <ShieldCheck className="text-white/20" size={32} />
                   </div>
-                  <h3 className="text-xl font-serif mb-2">Aucun signalement</h3>
-                  <p className="text-anthracite/40">La communauté se porte bien !</p>
+                  <h3 className="text-xl font-serif mb-2 text-white">Aucun signalement</h3>
+                  <p className="text-white/40 text-sm">La communauté se porte bien !</p>
                 </div>
               ) : (
-                <div className="bg-beige rounded-3xl border border-white/5 shadow-sm overflow-hidden">
+                <div className="bg-white/5 rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
                       <thead>
-                        <tr className="bg-slate-800 text-white">
-                          <th className="p-6 font-medium text-sm">Utilisateur</th>
-                          <th className="p-6 font-medium text-sm">Gravité</th>
-                          <th className="p-6 font-medium text-sm">Dernière Raison</th>
-                          <th className="p-6 font-medium text-sm">Statut</th>
-                          <th className="p-6 font-medium text-sm text-right">Actions</th>
+                        <tr className="bg-white/5 text-terracotta">
+                          <th className="p-8 font-black text-[10px] uppercase tracking-widest">Utilisateur</th>
+                          <th className="p-8 font-black text-[10px] uppercase tracking-widest">Gravité</th>
+                          <th className="p-8 font-black text-[10px] uppercase tracking-widest">Raison</th>
+                          <th className="p-8 font-black text-[10px] uppercase tracking-widest">Statut</th>
+                          <th className="p-8 font-black text-[10px] uppercase tracking-widest text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-black/5">
+                      <tbody className="divide-y divide-white/5">
                         {reports.map(r => (
-                          <tr key={r.id} className="hover:bg-white/5 transition-colors">
-                            <td className="p-6">
-                              <div className="font-bold text-slate-800">{r.reported_name}</div>
-                              <div className="text-[10px] text-slate-400">ID: {r.reported_id}</div>
+                          <tr key={r.id} className="hover:bg-white/5 transition-colors group">
+                            <td className="p-8">
+                              <div className="font-serif text-lg text-white">{r.reported_name}</div>
+                              <div className="text-[10px] text-white/20 font-mono">ID: {r.reported_id}</div>
                             </td>
-                            <td className="p-6">
+                            <td className="p-8">
                               <div className={cn(
-                                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                                r.report_count >= 5 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"
+                                "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                r.report_count >= 5 ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-white/5 text-white/40 border-white/10"
                               )}>
                                 <ShieldAlert size={12} />
                                 {r.report_count} Signalements
                               </div>
                             </td>
-                            <td className="p-6">
-                              <div className="text-sm font-medium text-slate-700">{r.reason}</div>
-                              <div className="text-xs text-slate-400 italic mt-1">"{r.details}"</div>
+                            <td className="p-8">
+                              <div className="text-sm font-medium text-white/80">{r.reason}</div>
+                              <div className="text-xs text-white/40 italic mt-1.5 line-clamp-1">"{r.details}"</div>
                             </td>
-                            <td className="p-6">
+                            <td className="p-8">
                               <div className={cn(
-                                "inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest",
-                                r.reported_status === 'active' ? "text-emerald-600 bg-emerald-50" : "text-slate-400 bg-slate-100"
+                                "inline-block px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] border",
+                                r.reported_status === 'active' ? "text-green-400 bg-green-400/10 border-green-400/20" : "text-white/20 bg-white/5 border-white/10"
                               )}>
                                 {r.reported_status}
                               </div>
                             </td>
-                            <td className="p-6 text-right">
+                            <td className="p-8 text-right">
                               <button 
                                 onClick={() => restrictUser(r.reported_id, r.reported_status)}
                                 className={cn(
-                                  "px-4 py-2 rounded-xl text-xs font-bold transition-all",
+                                  "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
                                   r.reported_status === 'active' 
-                                    ? "bg-slate-800 text-white hover:bg-slate-900" 
-                                    : "bg-indigo-600 text-white hover:bg-indigo-700"
+                                    ? "bg-white/5 text-white hover:bg-red-500 hover:text-white hover:border-red-500 border-white/10" 
+                                    : "bg-terracotta text-white hover:bg-accent-light border-terracotta"
                                 )}
                               >
                                 {r.reported_status === 'active' ? "Restreindre" : "Réactiver"}
@@ -4167,47 +4646,47 @@ const Admin = () => {
               )}
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-serif">Suggestions & Feedback</h3>
-                <div className="text-xs font-bold text-amber-600 uppercase tracking-wider">Voix des utilisateurs</div>
+            <div className="space-y-8">
+              <div className="flex items-center justify-between border-b border-white/5 pb-6">
+                <h3 className="text-2xl font-serif text-white">Suggestions & Feedback</h3>
+                <div className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em]">Voix des utilisateurs</div>
               </div>
               
-              <div className="grid gap-4">
+              <div className="grid gap-6">
                 {suggestions.map(s => (
                   <motion.div 
                     layout
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     key={s.id} 
-                    className="bg-beige rounded-3xl p-6 border border-white/5 shadow-sm hover:shadow-md transition-all"
+                    className="bg-white/5 rounded-[2.5rem] p-8 border border-white/5 hover:border-terracotta/20 transition-all shadow-2xl"
                   >
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="flex gap-4 items-center">
-                        <div className="w-10 h-10 bg-terracotta/10 rounded-xl flex items-center justify-center text-terracotta font-bold">
+                    <div className="flex justify-between items-start mb-8">
+                      <div className="flex gap-6 items-center">
+                        <div className="w-14 h-14 bg-terracotta/10 rounded-2xl flex items-center justify-center text-terracotta font-serif text-xl border border-terracotta/20">
                           {s.first_name[0]}
                         </div>
                         <div>
-                          <div className="font-bold">{s.first_name} {s.last_name}</div>
-                          <div className="text-xs text-anthracite/40">{s.email}</div>
+                          <div className="font-serif text-lg text-white">{s.first_name} {s.last_name}</div>
+                          <div className="text-xs text-white/40 font-medium">{s.email}</div>
                         </div>
                       </div>
-                      <div className="text-[10px] font-bold text-anthracite/40 uppercase bg-offwhite/50 px-2 py-1 rounded border border-white/5">
+                      <div className="text-[10px] font-black text-white/20 uppercase bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 tracking-widest">
                         {new Date(s.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="bg-beige/10 p-4 rounded-2xl text-anthracite/80 text-sm leading-relaxed italic">
+                    <div className="bg-white/5 p-6 rounded-[1.5rem] text-white/80 text-sm leading-relaxed italic border border-white/5">
                       "{s.content}"
                     </div>
                   </motion.div>
                 ))}
                 {suggestions.length === 0 && (
-                  <div className="card p-20 text-center bg-beige/50 border-dashed">
-                    <div className="bg-terracotta/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="p-20 text-center bg-white/5 rounded-[3rem] border border-white/5 border-dashed">
+                    <div className="bg-terracotta/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                       <Lightbulb className="text-terracotta" size={32} />
                     </div>
-                    <h3 className="text-xl font-serif mb-2">Aucun message</h3>
-                    <p className="text-anthracite/40">Les utilisateurs n'ont pas encore envoyé de suggestions.</p>
+                    <h3 className="text-xl font-serif mb-2 text-white">Aucun message</h3>
+                    <p className="text-white/40 text-sm">Les utilisateurs n'ont pas encore envoyé de suggestions.</p>
                   </div>
                 )}
               </div>
@@ -4215,6 +4694,16 @@ const Admin = () => {
           )}
         </div>
       </div>
+
+      <ThemedModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type as any}
+      />
+    </div>
 
       <ThemedModal
         isOpen={confirmModal.isOpen}
@@ -4244,7 +4733,11 @@ export default function App() {
 
   const addToast = (message: string, type: 'error' | 'success' | 'info', reason?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { id, message, type, reason }]);
+    setToasts(prev => {
+      // Prevent duplicate messages from stacking
+      if (prev.some(t => t.message === message)) return prev;
+      return [...prev, { id, message, type, reason }];
+    });
     setTimeout(() => removeToast(id), 5000);
   };
 
@@ -4314,7 +4807,10 @@ export default function App() {
       fetch('/api/me', { headers: getAuthHeaders() })
         .then(res => res.json())
         .then(data => {
-          if (!data.error) setUser(data.user);
+          if (!data.error) {
+            const userRole = data.user.email === ADMIN_EMAIL ? 'admin' : data.user.role;
+            setUser({ ...data.user, role: userRole });
+          }
           setLoading(false);
         })
         .catch(err => {
@@ -4355,6 +4851,7 @@ export default function App() {
     <AppErrorBoundary>
       <ToastContext.Provider value={{ addToast }}>
         <Router>
+          <ScrollToTop />
         <div className="min-h-dvh flex flex-col">
           <Navbar user={user} onLogout={logout} socket={socket} />
           <main className="flex-grow">
