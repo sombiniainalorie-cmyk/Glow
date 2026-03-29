@@ -4214,10 +4214,10 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
         type="danger"
         confirmText="Supprimer"
         cancelText="Annuler"
-             />
-          </div>
-
-        
+                 />
+             </div>
+        ); 
+      };
         
 const Favorites = ({ user }: { user: any }) => {
   const [profiles, setProfiles] = useState<any[]>([]);
