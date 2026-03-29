@@ -4216,8 +4216,8 @@ const MyProfile = ({ user, onLogout }: { user: any, onLogout?: () => void }) => 
         cancelText="Annuler"
              />
           </div>
-        );
-      };
+
+        
         
 const Favorites = ({ user }: { user: any }) => {
   const [profiles, setProfiles] = useState<any[]>([]);
